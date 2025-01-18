@@ -19,6 +19,6 @@ final fixedCostsExpandProvider = StateNotifierProvider<ExpandNotifier, bool>(
       (ref) => ExpandNotifier(),
 );
 
-final expensesExpandProvider = StateNotifierProvider<ExpandNotifier, bool>(
+final expenseExpandProvider = StateNotifierProvider<ExpandNotifier, bool>(
       (ref) => ExpandNotifier(),
 );

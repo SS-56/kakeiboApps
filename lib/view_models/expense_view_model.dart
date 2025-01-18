@@ -9,6 +9,8 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
 
   ExpenseViewModel(this.ref) : super([]);
 
+  List<Expense> get expenses => state;
+
   void addItem(Expense expense) {
     // 家計簿の開始日を取得（日数を基準に計算）
     final startDaysAgo = ref.read(startDayProvider);
@@ -42,24 +44,32 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
     ];
   }
 
-  // SharedPreferencesへの保存
   Future<void> _saveToSharedPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonData = state.map((expense) => expense.toJson()).toList();
-    await prefs.setString('expenses', jsonEncode(jsonData));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonData = state.map((expense) => expense.toJson()).toList();
+      await prefs.setString('expenses', jsonEncode(jsonData));
+    } catch (e) {
+      // エラーハンドリングを追加
+      print('Failed to save expenses: $e');
+    }
   }
 
-  // SharedPreferencesからの読み込み
   Future<void> loadFromSharedPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('expenses');
-    if (jsonString != null) {
-      final List<dynamic> jsonData = jsonDecode(jsonString);
-      state = jsonData.map((item) => Expense.fromJson(item)).toList();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString('expenses');
+      if (jsonString != null) {
+        final List<dynamic> jsonData = jsonDecode(jsonString);
+        state = jsonData.map((item) => Expense.fromJson(item)).toList();
+      }
+    } catch (e) {
+      // エラーハンドリングを追加
+      print('Failed to load expenses: $e');
     }
   }
 }
 
-final expensesViewModelProvider = StateNotifierProvider<ExpenseViewModel, List<Expense>>(
+final expenseViewModelProvider = StateNotifierProvider<ExpenseViewModel, List<Expense>>(
       (ref) => ExpenseViewModel(ref),
 );

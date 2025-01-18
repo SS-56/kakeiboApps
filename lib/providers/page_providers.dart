@@ -24,7 +24,7 @@ final totalFixedCostProvider = Provider<double>((ref) {
 
 // 支出合計プロバイダー
 final totalExpensesProvider = Provider<double>((ref) {
-  final expenses = ref.watch(expensesViewModelProvider);
+  final expenses = ref.watch(expenseViewModelProvider);
   return expenses.fold(0.0, (sum, expense) => sum + expense.amount);
 });
 
