@@ -13,6 +13,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     DateTime selectedDate = DateTime.now();
+    final fixedCostsDate = ref.watch(fixedCostsDateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -100,13 +101,13 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
             titleController: titleController,
             amountController: amountController,
             // Consumer を使って selectedDateProvider を監視
-            selectedDate: ref.watch(selectedDateProvider),
+            selectedDate: fixedCostsDate,
             onDateChange: (newDate) {
               // プロバイダーの値を更新
-              ref.read(selectedDateProvider.notifier).state = newDate;
+              ref.read(fixedCostsDateProvider.notifier).state = newDate;
             },
             onAdd: () {
-              final selectedDate = ref.read(selectedDateProvider);
+              final selectedDate = ref.read(fixedCostsDateProvider);
               final now = DateTime.now();
               final updatedDate = DateTime(
                 selectedDate.year,
@@ -129,9 +130,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                 );
                 titleController.clear();
                 amountController.clear();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('固定費が追加されました')),
-                );
+                ref.read(fixedCostsDateProvider.notifier).state = DateTime.now(); // 日付をリセット
               }
             },
           ),

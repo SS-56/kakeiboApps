@@ -13,6 +13,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     DateTime selectedDate = DateTime.now();
+    final incomeDate = ref.watch(incomeDateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -101,12 +102,12 @@ class FullScreenIncomeSection extends ConsumerWidget {
           InputArea(
             titleController: titleController,
             amountController: amountController,
-            selectedDate: ref.watch(selectedDateProvider),
+            selectedDate: incomeDate,
             onDateChange: (newDate) {
-              ref.read(selectedDateProvider.notifier).state = newDate;
+              ref.read(incomeDateProvider.notifier).state = newDate;
             },
             onAdd: () {
-              final selectedDate = ref.read(selectedDateProvider);
+              final selectedDate = ref.read(incomeDateProvider);
               final now = DateTime.now();
               final updatedDate = DateTime(
                 selectedDate.year,
@@ -141,6 +142,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
                 );
                 titleController.clear();
                 amountController.clear();
+                ref.read(incomeDateProvider.notifier).state = DateTime.now(); // 日付をリセット
               }
             },
           ),

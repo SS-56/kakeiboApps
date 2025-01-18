@@ -21,7 +21,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
-    final selectedDate = ref.watch(selectedDateProvider);
+    final expensesDate = ref.watch(expensesDateProvider);
     final incomes = ref.watch(incomeViewModelProvider);
     final fixedCosts = ref.watch(fixedCostViewModelProvider);
     final expenses = ref.watch(expenseViewModelProvider);
@@ -70,9 +70,9 @@ class HomePage extends ConsumerWidget {
           InputArea(
             titleController: titleController,
             amountController: amountController,
-            selectedDate: selectedDate,
+            selectedDate: expensesDate,
             onDateChange: (newDate) {
-              ref.read(selectedDateProvider.notifier).state = newDate;
+              ref.read(expensesDateProvider.notifier).state = newDate;
             },
             onAdd: () {
               final title = titleController.text.trim();
@@ -89,7 +89,7 @@ class HomePage extends ConsumerWidget {
                 Expense(
                   title: title,
                   amount: amount,
-                  date: selectedDate,
+                  date: expensesDate,
                 ),
               );
               titleController.clear();

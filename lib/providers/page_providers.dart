@@ -10,6 +10,11 @@ final pageIndexProvider = StateProvider<int>((ref) => 1);
 // 並び替えプロバイダー
 final sortOrderProvider = StateProvider<bool>((ref) => true);
 
+final incomeDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
+final fixedCostsDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
+final expensesDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
+
+
 // 収入合計プロバイダー
 final totalIncomeProvider = Provider<double>((ref) {
   final incomes = ref.watch(incomeViewModelProvider);

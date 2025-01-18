@@ -50,7 +50,6 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
       final jsonData = state.map((expense) => expense.toJson()).toList();
       await prefs.setString('expenses', jsonEncode(jsonData));
     } catch (e) {
-      // エラーハンドリングを追加
       print('Failed to save expenses: $e');
     }
   }
