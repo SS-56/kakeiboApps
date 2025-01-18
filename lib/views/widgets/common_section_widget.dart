@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CommonSectionWidget extends StatelessWidget {
+class CommonSectionWidget extends ConsumerWidget {
   final String title;
   final double total;
   final bool isExpanded;
@@ -8,16 +9,16 @@ class CommonSectionWidget extends StatelessWidget {
   final Widget fullScreenWidget;
 
   const CommonSectionWidget({
-    super.key,
+    Key? key,
     required this.title,
     required this.total,
     required this.isExpanded,
     required this.onExpand,
     required this.fullScreenWidget,
-  });
+  }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey),
@@ -29,13 +30,13 @@ class CommonSectionWidget extends StatelessWidget {
             onTap: onExpand,
             child: Container(
               color: Colors.grey[200],
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     title,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Icon(
                     isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
@@ -52,14 +53,14 @@ class CommonSectionWidget extends StatelessWidget {
                   Center(
                     child: Text(
                       '${total.toStringAsFixed(0)} 円',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                   ),
                   Positioned(
                     bottom: 8,
                     right: 8,
                     child: IconButton(
-                      icon: Icon(Icons.arrow_forward_ios, color: Colors.blue),
+                      icon: const Icon(Icons.arrow_forward_ios, color: Colors.blue),
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => fullScreenWidget),

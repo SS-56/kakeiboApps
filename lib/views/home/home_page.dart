@@ -4,9 +4,14 @@ import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 import 'package:yosan_de_kakeibo/views/home/expense_section.dart';
 import 'package:yosan_de_kakeibo/views/home/fixed_costs_section.dart';
+import 'package:yosan_de_kakeibo/views/home/full_screen_fixed_costs_section.dart';
+import 'package:yosan_de_kakeibo/views/home/full_screen_income_section.dart';
 import 'package:yosan_de_kakeibo/views/home/income_section.dart';
+import 'package:yosan_de_kakeibo/views/widgets/common_section_widget.dart';
 import 'package:yosan_de_kakeibo/views/widgets/input_area.dart';
 
 class HomePage extends ConsumerWidget {
@@ -17,45 +22,49 @@ class HomePage extends ConsumerWidget {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     final selectedDate = ref.watch(selectedDateProvider);
+    final incomes = ref.watch(incomeViewModelProvider);
+    final fixedCosts = ref.watch(fixedCostViewModelProvider);
+    final expenses = ref.watch(expenseViewModelProvider);
+
+    final totalIncome = incomes.fold(0.0, (sum, income) => sum + income.amount);
+    final totalFixedCosts = fixedCosts.fold(0.0, (sum, cost) => sum + cost.amount);
+    final expensesTotal = expenses.fold(0.0, (sum, expense) => sum + expense.amount);
+
+    final remainingBalance = totalIncome - totalFixedCosts - expensesTotal;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ホーム'),
+        title: Text(
+          'あと ${remainingBalance.toStringAsFixed(0)} 円',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: Column(
         children: [
+          CommonSectionWidget(
+            title: '総収入',
+            total: totalIncome,
+            isExpanded: ref.watch(incomeExpandProvider),
+            onExpand: () {
+              ref.read(incomeExpandProvider.notifier).toggle();
+            },
+            fullScreenWidget: const FullScreenIncomeSection(),
+          ),
+          const Divider(height: 20, thickness: 2),
+          CommonSectionWidget(
+            title: '固定費',
+            total: totalFixedCosts,
+            isExpanded: ref.watch(fixedCostsExpandProvider),
+            onExpand: () {
+              ref.read(fixedCostsExpandProvider.notifier).toggle();
+            },
+            fullScreenWidget: const FullScreenFixedCostsSection(),
+          ),
+          const Divider(height: 20, thickness: 2),
           Expanded(
-            child: ListView(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: IncomeSection(
-                    isExpanded: ref.watch(incomeExpandProvider),
-                    onExpandToggle: () {
-                      ref.read(incomeExpandProvider.notifier).toggle();
-                    },
-                  ),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: FixedCostsSection(
-                    isExpanded: ref.watch(fixedCostsExpandProvider),
-                    onExpandToggle: () {
-                      ref.read(fixedCostsExpandProvider.notifier).toggle();
-                    },
-                  ),
-                ),
-                Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: ExpenseSection(
-                    isExpanded: ref.watch(expenseExpandProvider),
-                    onExpandToggle: () {
-                      ref.read(expenseExpandProvider.notifier).toggle();
-                    },
-                  ),
-                ),
-              ],
+            child: ExpenseSection(
+              ref: ref,
             ),
           ),
           InputArea(

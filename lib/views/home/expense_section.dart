@@ -1,82 +1,135 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 
-class ExpenseSection extends ConsumerWidget {
-  final bool isExpanded;
-  final VoidCallback onExpandToggle;
+final expensesExpandProvider = StateProvider<bool>((ref) => false);
 
-  const ExpenseSection({
-    Key? key,
-    required this.isExpanded,
-    required this.onExpandToggle,
-  }) : super(key: key);
+class ExpenseSection extends StatelessWidget {
+  final WidgetRef ref;
+
+  const ExpenseSection({super.key, required this.ref});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final expenses = ref.watch(expenseViewModelProvider);
-    final totalExpenses = expenses.fold<double>(
-      0,
-          (sum, expense) => sum + expense.amount,
-    );
+    final isAscending = ref.watch(sortOrderProvider);
+    final sortedExpenses = List.from(expenses)
+      ..sort((a, b) => isAscending
+          ? a.date.compareTo(b.date)
+          : b.date.compareTo(a.date));
+
+    final totalExpenses =
+    sortedExpenses.fold(0.0, (sum, expense) => sum + expense.amount);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // タイトル部分
-        GestureDetector(
-          onTap: onExpandToggle,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.grey[200],
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '使った金額',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
-              ],
-            ),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(8),
           ),
-        ),
-        if (isExpanded)
-          Column(
+          child: Column(
             children: [
-              Center(
-                child: Text(
-                  '${totalExpenses.toStringAsFixed(0)} 円',
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold),
+              GestureDetector(
+                onTap: () {
+                  ref.read(expensesExpandProvider.notifier).state =
+                  !ref.read(expensesExpandProvider.notifier).state;
+                },
+                child: Container(
+                  height: MediaQuery.of(context).size.height / 20,
+                  color: Colors.grey[200],
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '使った金額',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Icon(
+                        ref.watch(expensesExpandProvider)
+                            ? Icons.arrow_drop_up
+                            : Icons.arrow_drop_down,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: expenses.length,
-                itemBuilder: (context, index) {
-                  final expense = expenses[index];
-                  return Dismissible(
-                    key: ValueKey(expense.hashCode),
-                    onDismissed: (_) {
-                      ref.read(expenseViewModelProvider.notifier).removeItem(expense);
-                    },
-                    child: Card(
-                      margin: const EdgeInsets.symmetric(vertical: 2),
-                      child: ListTile(
-                        title: Text(expense.title),
-                        subtitle: Text(
-                          '${expense.date.year}/${expense.date.month}/${expense.date.day}',
-                        ),
-                        trailing: Text('${expense.amount} 円'),
+              if (ref.watch(expensesExpandProvider))
+                SizedBox(
+                  height: MediaQuery.of(context).size.height / 20,
+                  child: Center(
+                    child: Text(
+                      '${totalExpenses.toStringAsFixed(0)} 円',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
             ],
           ),
+        ),
+        const Divider(height: 1),
+
+        // 支出リスト
+        Expanded(
+          child: ListView.builder(
+            itemCount: sortedExpenses.length,
+            itemBuilder: (context, index) {
+              final expense = sortedExpenses[index];
+              return Dismissible(
+                key: ValueKey(expense),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Icon(Icons.delete, color: Colors.white),
+                ),
+                onDismissed: (direction) {
+                  ref
+                      .read(expenseViewModelProvider.notifier)
+                      .removeItem(expense);
+                },
+                child: Card(
+                  margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: ListTile(
+                    leading: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${expense.date.year}/${expense.date.month}/${expense.date.day}',
+                        ),
+                        Text(expense.title),
+                      ],
+                    ),
+                    title: Center(
+                      child: Text(
+                        '${expense.amount.toStringAsFixed(0)} 円',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(Icons.settings, color: Colors.grey),
+                      onPressed: () {
+                        // 設定ボタンの動作（必要に応じて実装）
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ],
     );
   }
