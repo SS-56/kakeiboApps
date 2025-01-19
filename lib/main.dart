@@ -13,36 +13,25 @@ import 'providers/page_providers.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // SharedPreferencesを初期化してロード
   final prefs = await SharedPreferences.getInstance();
-
-  // プロバイダーコンテナを使用して状態を復元
   final container = ProviderContainer();
 
-  // 状態復元
-  final expenseViewModel = container.read(expenseViewModelProvider.notifier);
-  await expenseViewModel.loadData();
+  try {
+    // データをロード
+    await container.read(expenseViewModelProvider.notifier).loadData();
+    await container.read(fixedCostViewModelProvider.notifier).loadData();
+    await container.read(incomeViewModelProvider.notifier).loadData();
+    await container.read(subscriptionStatusProvider.notifier).loadStatus();
+  } catch (e) {
+    print('データロード中にエラーが発生しました: $e');
+  }
 
-  final fixedCostViewModel = container.read(fixedCostViewModelProvider.notifier);
-  await fixedCostViewModel.loadData();
+  final initialPageIndex = prefs.getInt('page_index') ?? 1;
 
-  final incomeViewModel = container.read(incomeViewModelProvider.notifier);
-  await incomeViewModel.loadData();
-
-  final SubscriptionStatusViewModel = container.read(subscriptionStatusProvider.notifier);
-  await SubscriptionStatusViewModel.loadStatus();
-
-
-  // 必要な状態をロード
-  final initialPageIndex = prefs.getInt('page_index') ?? 1; // デフォルト値は1
   runApp(
     ProviderScope(
       overrides: [
         pageIndexProvider.overrideWith((ref) => initialPageIndex),
-        expenseViewModelProvider.overrideWith((ref) => expenseViewModel),
-        fixedCostViewModelProvider.overrideWith((ref) => fixedCostViewModel),
-        incomeViewModelProvider.overrideWith((ref) => incomeViewModel),
-        subscriptionStatusProvider.overrideWith((ref) => SubscriptionStatusViewModel),
       ],
       child: MyApp(),
     ),

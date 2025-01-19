@@ -19,6 +19,17 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final newStartDay = ref.watch(startDayProvider);
+
+    // 開始日がロード中の場合
+    if (newStartDay == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     final expensesDate = ref.watch(expensesDateProvider);
@@ -63,9 +74,7 @@ class HomePage extends ConsumerWidget {
           ),
           const Divider(height: 20, thickness: 2),
           Expanded(
-            child: ExpenseSection(
-              ref: ref,
-            ),
+            child: ExpenseSection(ref: ref),
           ),
           InputArea(
             titleController: titleController,

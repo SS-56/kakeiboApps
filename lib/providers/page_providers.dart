@@ -5,8 +5,6 @@ import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 
-
-
 final pageIndexProvider = StateProvider<int>((ref) => 1);
 
 final sortOrderProvider = StateNotifierProvider<SortOrderNotifier, bool>((ref) {
@@ -62,35 +60,64 @@ final startDayProvider = StateNotifierProvider<StartDayNotifier, int>((ref) {
   return StartDayNotifier(ref);
 });
 
-
-// StartDayNotifierの実装
 class StartDayNotifier extends StateNotifier<int> {
-  StartDayNotifier(this.ref) : super(DateTime.now().day);
-
   final Ref ref;
+  bool isLoading = true; // ロード中フラグ
 
-  // 開始日を更新するメソッド
-  void updateStartDay(int newStartDay) {
-    state = newStartDay;
+  StartDayNotifier(this.ref) : super(1) {
+    _initialize(); // 初期化時にロード処理を実行
   }
 
-  /// 日付を設定して保存
-  Future<void> setStartDay(int day) async {
-    state = day;
+  Future<void> _initialize() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedDay = prefs.getInt('start_day');
+      state = savedDay ?? 1; // 開始日を設定
+    } catch (e) {
+      print('開始日のロード中にエラーが発生しました: $e');
+    }
+  }
+
+  Future<void> setStartDay(int newStartDay) async {
+    state = newStartDay;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('start_day', day);
+    await prefs.setInt('start_day', newStartDay);
+  }
 
-    DateTime now = DateTime.now();
-    DateTime startDate = DateTime(now.year, now.month, state);
-    DateTime endDate = calculateEndDate(startDate);
 
-    _applyFilters(startDate, endDate);
-    _updateBudgetMessage(startDate, endDate);
+// // 管理期間の再計算
+// final now = DateTime.now();
+// final startDate = DateTime(now.year, now.month, state);
+// final endDate = calculateEndDate(startDate);
+//
+// // データの更新
+// _updateBudgetMessage(startDate, endDate);
+// _applyFilters(startDate, endDate);
+
+
+  /// SharedPreferencesから開始日をロード
+  Future<void> _loadStartDay() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedDay = prefs.getInt('start_day');
+
+    if (savedDay != null) {
+      state = savedDay;
+
+      // 管理期間を更新
+      final now = DateTime.now();
+      final startDate = DateTime(now.year, now.month, savedDay);
+      final endDate = calculateEndDate(startDate);
+
+      _updateBudgetMessage(startDate, endDate);
+      _applyFilters(startDate, endDate);
+    } else {
+      print("開始日が保存されていないため、デフォルト値を使用します");
+    }
   }
 
   /// 管理期間メッセージを更新
   void _updateBudgetMessage(DateTime startDate, DateTime endDate) {
-    String budgetPeriodMessage =
+    final budgetPeriodMessage =
         "${startDate.month}月${startDate.day}日から${endDate.month}月${endDate.day}日までの家計簿を管理します";
     ref.read(budgetPeriodProvider.notifier).state = budgetPeriodMessage;
   }
@@ -101,8 +128,8 @@ class StartDayNotifier extends StateNotifier<int> {
     ref.read(fixedCostViewModelProvider.notifier).filterByDateRange(startDate, endDate);
     ref.read(expenseViewModelProvider.notifier).filterByDateRange(startDate, endDate);
   }
-
 }
+
 
 // 通知設定プロバイダー
 final notificationSettingProvider = StateNotifierProvider<NotificationSettingNotifier, bool>((ref) {

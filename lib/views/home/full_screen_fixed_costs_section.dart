@@ -107,8 +107,26 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
               ref.read(fixedCostsDateProvider.notifier).state = newDate;
             },
             onAdd: () {
-              final selectedDate = ref.read(fixedCostsDateProvider);
+              final isLoading = ref.read(startDayProvider.notifier).isLoading;
+
+              if (isLoading) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("データをロード中です。少々お待ちください。")),
+                );
+                return;
+              }
+
+              final startDay = ref.watch(startDayProvider);
+
+              if (startDay == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("開始日が設定されていません")),
+                );
+                return;
+              }
               final now = DateTime.now();
+              final startDate = DateTime(now.year, now.month, startDay);
+              final selectedDate = ref.read(fixedCostsDateProvider);
               final updatedDate = DateTime(
                 selectedDate.year,
                 selectedDate.month,
@@ -120,6 +138,23 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
               );
               final title = titleController.text.trim();
               final amount = double.tryParse(amountController.text);
+
+              // 開始日以前のデータをチェック
+              if (updatedDate.isBefore(startDate)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('開始日より前の日付のデータは入力できません')),
+                );
+                return; // 処理を中断
+              }
+
+              ref.read(fixedCostViewModelProvider.notifier).addItem(
+                FixedCost(
+                  title: titleController.text.trim(),
+                  amount: double.tryParse(amountController.text) ?? 0.0,
+                  date: selectedDate,
+                ),
+              );
+
               if (title.isNotEmpty && amount != null) {
                 ref.read(fixedCostViewModelProvider.notifier).addItem(
                   FixedCost(

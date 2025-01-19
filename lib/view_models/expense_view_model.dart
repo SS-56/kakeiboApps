@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/expense.dart';
@@ -18,34 +19,44 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
     await prefs.setString('expenses', jsonData);
   }
 
-  // データの復元
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString('expenses');
+
     if (jsonString != null) {
       final List<dynamic> jsonData = jsonDecode(jsonString);
       state = jsonData.map((e) => Expense.fromJson(e)).toList();
+
+      final startDay = ref.read(startDayProvider);
+      if (startDay != null) {
+        final now = DateTime.now();
+        final startDate = DateTime(now.year, now.month, startDay);
+
+        state = state.where((item) => !item.date.isBefore(startDate)).toList();
+      }
     }
   }
 
-  void addItem(Expense expense) {
-    // 家計簿の開始日を取得（日数を基準に計算）
-    final startDaysAgo = ref.read(startDayProvider);
-    final startDate = DateTime.now().subtract(Duration(days: startDaysAgo));
 
+
+  // 支出データを追加
+  void addItem(Expense expense) {
+    final startDate = _getStartDate();
     // 日付バリデーション
     if (expense.date.isBefore(startDate)) {
-      // 開始日以前のデータを無視
       return;
     }
-
     // データを状態に追加
     state = [...state, expense];
-
-    // 保存処理を呼び出す
     saveData();
   }
 
+  // 開始日を取得
+  DateTime _getStartDate() {
+    final startDay = ref.read(startDayProvider);
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, startDay);
+  }
 
   // 支出データを削除
   void removeItem(Expense expense) {
@@ -55,22 +66,16 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
 
   // 支出データを並べ替え
   void sort(bool isAscending) {
-    state = [
-      ...state..sort((a, b) =>
-      isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date))
-    ];
+    state.sort((a, b) =>
+    isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
   }
 
-
+  // 指定された期間でフィルタリング
   void filterByDateRange(DateTime startDate, DateTime endDate) {
-    try {
-      state = state.where((item) {
-        final date = item.date; // 直接プロパティにアクセス
-        return date.isAfter(startDate) && date.isBefore(endDate);
-      }).toList();
-    } catch (e) {
-      print("Error in filterByDateRange: $e");
-    }
+    state = state.where((item) {
+      final date = item.date;
+      return date.isAfter(startDate) && date.isBefore(endDate);
+    }).toList();
   }
 }
 
