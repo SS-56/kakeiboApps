@@ -20,11 +20,13 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
 
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('expenses');
+    final jsonString = prefs.getString('incomes');
+    print('Loading incomes: $jsonString'); // ログを追加
 
     if (jsonString != null) {
       final List<dynamic> jsonData = jsonDecode(jsonString);
       state = jsonData.map((e) => Income.fromJson(e)).toList();
+      print('Loaded incomes: $state'); // ロード後の状態を確認
 
       final startDay = ref.read(startDayProvider);
       if (startDay != null) {
@@ -32,19 +34,19 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
         final startDate = DateTime(now.year, now.month, startDay);
 
         state = state.where((item) => !item.date.isBefore(startDate)).toList();
+        print('Filtered incomes by start day: $state'); // フィルタ後の状態を確認
       }
     }
   }
 
-
   // 収入データを追加
-  void addItem(Income income) {
+  void addItem(Income income) async {
     final startDate = _getStartDate();
     if (income.date.isBefore(startDate)) {
       return; // 開始日より前のデータを無視
     }
     state = [...state, income];
-    saveData();
+    await saveData();
   }
 
   // 開始日を取得
@@ -62,7 +64,8 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
 
   // 収入データを並び替え
   void sortItems(bool isAscending) {
-    state.sort((a, b) => isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
+    state.sort((a, b) =>
+        isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
   }
 
   // 指定された期間でフィルタリング
@@ -81,6 +84,6 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
 }
 
 final incomeViewModelProvider =
-StateNotifierProvider<IncomeViewModel, List<Income>>((ref) {
+    StateNotifierProvider<IncomeViewModel, List<Income>>((ref) {
   return IncomeViewModel(ref);
 });

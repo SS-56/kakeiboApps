@@ -9,41 +9,42 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
   final Ref ref;
 
   FixedCostViewModel(this.ref) : super([]);
+  bool _isDataLoaded = false;
 
-  // データの保存
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonData = jsonEncode(state.map((e) => e.toJson()).toList());
-    await prefs.setString('fixed_costs', jsonData);
+    await prefs.setString('fixed_costs', jsonData); // 固定費専用のキーを使用
+    print('Fixed costs saved: $jsonData');
   }
+
 
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('expenses');
+    final jsonString = prefs.getString('fixed_costs'); // 修正: 正しいキーを使用
+    print('Loading fixed costs from SharedPreferences: $jsonString');
 
     if (jsonString != null) {
       final List<dynamic> jsonData = jsonDecode(jsonString);
       state = jsonData.map((e) => FixedCost.fromJson(e)).toList();
-
-      final startDay = ref.read(startDayProvider);
-      if (startDay != null) {
-        final now = DateTime.now();
-        final startDate = DateTime(now.year, now.month, startDay);
-
-        state = state.where((item) => !item.date.isBefore(startDate)).toList();
-      }
+      print('Loaded fixed costs: $state');
+    } else {
+      print('No fixed costs found in SharedPreferences.');
     }
   }
 
 
+
+
+
   // 固定費データを追加
-  void addItem(FixedCost fixedCost) {
+  void addItem(FixedCost fixedCost) async {
     final startDate = _getStartDate();
     if (fixedCost.date.isBefore(startDate)) {
       return; // 開始日より前のデータを無視
     }
     state = [...state, fixedCost];
-    saveData();
+    await saveData();
   }
 
   // 開始日を取得

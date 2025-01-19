@@ -69,14 +69,12 @@ class StartDayNotifier extends StateNotifier<int> {
   }
 
   Future<void> _initialize() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedDay = prefs.getInt('start_day');
-      state = savedDay ?? 1; // 開始日を設定
-    } catch (e) {
-      print('開始日のロード中にエラーが発生しました: $e');
-    }
+    await _loadStartDay();
+    ref.read(incomeViewModelProvider.notifier).loadData();
+    ref.read(fixedCostViewModelProvider.notifier).loadData();
+    ref.read(expenseViewModelProvider.notifier).loadData();
   }
+
 
   Future<void> setStartDay(int newStartDay) async {
     state = newStartDay;

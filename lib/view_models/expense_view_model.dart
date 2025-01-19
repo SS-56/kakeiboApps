@@ -11,36 +11,32 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
   ExpenseViewModel(this.ref) : super([]);
 
   List<Expense> get expenses => state;
+  bool _isDataLoaded = false;
 
-  // データの保存
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonData = jsonEncode(state.map((e) => e.toJson()).toList());
-    await prefs.setString('expenses', jsonData);
+    await prefs.setString('expenses', jsonData); // 支出専用のキーを使用
+    print('Expenses saved: $jsonData');
   }
+
 
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('expenses');
+    final jsonString = prefs.getString('expenses'); // 修正: 正しいキーを使用
+    print('Loading expenses from SharedPreferences: $jsonString');
 
     if (jsonString != null) {
       final List<dynamic> jsonData = jsonDecode(jsonString);
       state = jsonData.map((e) => Expense.fromJson(e)).toList();
-
-      final startDay = ref.read(startDayProvider);
-      if (startDay != null) {
-        final now = DateTime.now();
-        final startDate = DateTime(now.year, now.month, startDay);
-
-        state = state.where((item) => !item.date.isBefore(startDate)).toList();
-      }
+      print('Loaded expenses: $state');
+    } else {
+      print('No expenses found in SharedPreferences.');
     }
   }
 
-
-
   // 支出データを追加
-  void addItem(Expense expense) {
+  void addItem(Expense expense) async {
     final startDate = _getStartDate();
     // 日付バリデーション
     if (expense.date.isBefore(startDate)) {
@@ -48,7 +44,7 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
     }
     // データを状態に追加
     state = [...state, expense];
-    saveData();
+    await saveData();
   }
 
   // 開始日を取得
@@ -67,7 +63,7 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
   // 支出データを並べ替え
   void sort(bool isAscending) {
     state.sort((a, b) =>
-    isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
+        isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
   }
 
   // 指定された期間でフィルタリング
@@ -79,6 +75,7 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
   }
 }
 
-final expenseViewModelProvider = StateNotifierProvider<ExpenseViewModel, List<Expense>>(
-      (ref) => ExpenseViewModel(ref),
+final expenseViewModelProvider =
+    StateNotifierProvider<ExpenseViewModel, List<Expense>>(
+  (ref) => ExpenseViewModel(ref),
 );
