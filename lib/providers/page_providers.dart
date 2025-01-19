@@ -16,8 +16,16 @@ final sortOrderProvider = StateNotifierProvider<SortOrderNotifier, bool>((ref) {
 class SortOrderNotifier extends StateNotifier<bool> {
   SortOrderNotifier() : super(true);
 
-  void updateSortOrder(bool isAscending) {
+  Future<void> updateSortOrder(bool isAscending) async {
     state = isAscending;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sort_order', isAscending);
+  }
+
+  Future<void> _loadSortOrder() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('sort_order') ?? true;
   }
 }
 

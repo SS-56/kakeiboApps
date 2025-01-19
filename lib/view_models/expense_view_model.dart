@@ -11,6 +11,23 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
 
   List<Expense> get expenses => state;
 
+  // データの保存
+  Future<void> saveData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonData = jsonEncode(state.map((e) => e.toJson()).toList());
+    await prefs.setString('expenses', jsonData);
+  }
+
+  // データの復元
+  Future<void> loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString('expenses');
+    if (jsonString != null) {
+      final List<dynamic> jsonData = jsonDecode(jsonString);
+      state = jsonData.map((e) => Expense.fromJson(e)).toList();
+    }
+  }
+
   void addItem(Expense expense) {
     // 家計簿の開始日を取得（日数を基準に計算）
     final startDaysAgo = ref.read(startDayProvider);
@@ -26,14 +43,14 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
     state = [...state, expense];
 
     // 保存処理を呼び出す
-    _saveToSharedPreferences();
+    saveData();
   }
 
 
   // 支出データを削除
   void removeItem(Expense expense) {
     state = state.where((item) => item != expense).toList();
-    _saveToSharedPreferences();
+    saveData();
   }
 
   // 支出データを並べ替え
@@ -44,29 +61,7 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
     ];
   }
 
-  Future<void> _saveToSharedPreferences() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonData = state.map((expense) => expense.toJson()).toList();
-      await prefs.setString('expenses', jsonEncode(jsonData));
-    } catch (e) {
-      print('Failed to save expenses: $e');
-    }
-  }
 
-  Future<void> loadFromSharedPreferences() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString('expenses');
-      if (jsonString != null) {
-        final List<dynamic> jsonData = jsonDecode(jsonString);
-        state = jsonData.map((item) => Expense.fromJson(item)).toList();
-      }
-    } catch (e) {
-      // エラーハンドリングを追加
-      print('Failed to load expenses: $e');
-    }
-  }
   void filterByDateRange(DateTime startDate, DateTime endDate) {
     try {
       state = state.where((item) {

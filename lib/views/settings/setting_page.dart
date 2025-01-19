@@ -8,7 +8,7 @@ import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
-import 'package:yosan_de_kakeibo/view_models/user_status_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/home/expense_section.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
 
@@ -21,7 +21,7 @@ class SettingsPage extends ConsumerWidget {
     final startDay = ref.watch(startDayProvider);
     final customCategories = ref.watch(customCategoryProvider);
     final types = ref.watch(typeProvider);
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(subscriptionStatusProvider);
     final sortOrder = ref.watch(sortOrderProvider);
 
     return Scaffold(
@@ -97,7 +97,7 @@ class SettingsPage extends ConsumerWidget {
               trailing: Switch(
                 value: ref.watch(dataBackupProvider),
                 onChanged: (value) {
-                  final isPremium = ref.watch(isPremiumProvider) == 'basic';
+                  final isPremium = ref.watch(subscriptionStatusProvider) == 'basic';
                   if (isPremium) {
                     ref.read(dataBackupProvider.notifier).toggleBackup(value);
                     print("データ同期設定が変更されました: $value");
@@ -442,7 +442,7 @@ class SettingsPage extends ConsumerWidget {
     ref.read(budgetPeriodProvider.notifier).state = "";
 
     // 課金状態を初期化 ('free'にリセット)
-    ref.read(isPremiumProvider.notifier).state = 'free';
+    ref.read(subscriptionStatusProvider.notifier).state = 'free';
     await prefs.setString('subscription_plan', 'free'); // 永続データもリセット
 
     // セクションの展開状態をリセット
@@ -452,7 +452,7 @@ class SettingsPage extends ConsumerWidget {
   }
 
   void _addCategory(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider); // 課金状態を取得
+    final isPremium = ref.watch(subscriptionStatusProvider); // 課金状態を取得
     print("Current isPremium value: $isPremium");
 
     if (isPremium != 'basic') {
@@ -498,7 +498,7 @@ class SettingsPage extends ConsumerWidget {
   }
 
   void _addType(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider); // 課金状態を取得
+    final isPremium = ref.watch(subscriptionStatusProvider); // 課金状態を取得
     print("Current isPremium value: $isPremium");
 
     if (isPremium != 'basic') {

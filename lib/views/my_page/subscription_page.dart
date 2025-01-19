@@ -2,12 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:yosan_de_kakeibo/view_models/user_status_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 
 class SubscriptionPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(isPremiumProvider); // 課金状態を取得
+    final isPremium = ref.watch(subscriptionStatusProvider); // 課金状態を取得
 
     // プランリストを作成
     final List<Map<String, dynamic>> plans = [
@@ -93,7 +93,7 @@ class SubscriptionPage extends ConsumerWidget {
         required VoidCallback? onTapSubscribe,
         required VoidCallback? onTapUnsubscribe,
       }) {
-    final isPremium = ref.watch(isPremiumProvider);
+    final isPremium = ref.watch(subscriptionStatusProvider);
 
     return Card(
       color: isPremium == title ? Colors.lime[50] : null, // 現在加入中なら色を変更
@@ -168,7 +168,7 @@ class SubscriptionPage extends ConsumerWidget {
   void _subscribe(WidgetRef ref, String plan) async {
     // 課金状態を更新し、永続化
     print("選択されたプラン: $plan");
-    await ref.read(isPremiumProvider.notifier).savePremiumStatus(plan);
+    await ref.read(subscriptionStatusProvider.notifier).saveStatus(plan);
 
     // プラン選択後のメッセージ表示
     ScaffoldMessenger.of(ref.context).showSnackBar(

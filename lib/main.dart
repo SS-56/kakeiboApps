@@ -1,13 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'views/home/home_page.dart';
 import 'views/my_page/my_page.dart';
 import 'views/settings/setting_page.dart';
 import 'providers/page_providers.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // SharedPreferencesを初期化してロード
+  final prefs = await SharedPreferences.getInstance();
+
+  // プロバイダーコンテナを使用して状態を復元
+  final container = ProviderContainer();
+
+  // 状態復元
+  final expenseViewModel = container.read(expenseViewModelProvider.notifier);
+  await expenseViewModel.loadData();
+
+  final fixedCostViewModel = container.read(fixedCostViewModelProvider.notifier);
+  await fixedCostViewModel.loadData();
+
+  final incomeViewModel = container.read(incomeViewModelProvider.notifier);
+  await incomeViewModel.loadData();
+
+  final SubscriptionStatusViewModel = container.read(subscriptionStatusProvider.notifier);
+  await SubscriptionStatusViewModel.loadStatus();
+
+
+  // 必要な状態をロード
+  final initialPageIndex = prefs.getInt('page_index') ?? 1; // デフォルト値は1
   runApp(
     ProviderScope(
+      overrides: [
+        pageIndexProvider.overrideWith((ref) => initialPageIndex),
+        expenseViewModelProvider.overrideWith((ref) => expenseViewModel),
+        fixedCostViewModelProvider.overrideWith((ref) => fixedCostViewModel),
+        incomeViewModelProvider.overrideWith((ref) => incomeViewModel),
+        subscriptionStatusProvider.overrideWith((ref) => SubscriptionStatusViewModel),
+      ],
       child: MyApp(),
     ),
   );
