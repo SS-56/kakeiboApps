@@ -21,6 +21,17 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
           ? a.date.compareTo(b.date)
           : b.date.compareTo(a.date));
   }
+
+  void filterByDateRange(DateTime startDate, DateTime endDate) {
+    try {
+      state = state.where((item) {
+        final date = item.date; // 直接プロパティにアクセス
+        return date.isAfter(startDate) && date.isBefore(endDate);
+      }).toList();
+    } catch (e) {
+      print("Error in filterByDateRange: $e");
+    }
+  }
 }
 
 final incomeViewModelProvider =

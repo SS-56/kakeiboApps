@@ -67,6 +67,16 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
       print('Failed to load expenses: $e');
     }
   }
+  void filterByDateRange(DateTime startDate, DateTime endDate) {
+    try {
+      state = state.where((item) {
+        final date = item.date; // 直接プロパティにアクセス
+        return date.isAfter(startDate) && date.isBefore(endDate);
+      }).toList();
+    } catch (e) {
+      print("Error in filterByDateRange: $e");
+    }
+  }
 }
 
 final expenseViewModelProvider = StateNotifierProvider<ExpenseViewModel, List<Expense>>(
