@@ -28,7 +28,7 @@ class ExpenseSection extends StatelessWidget {
         // タイトル部分
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
+            border: Border.all(color: Colors.white),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
@@ -40,7 +40,7 @@ class ExpenseSection extends StatelessWidget {
                 },
                 child: Container(
                   height: MediaQuery.of(context).size.height / 20,
-                  color: Colors.grey[200],
+                  color: Colors.grey[10],
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

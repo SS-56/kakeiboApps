@@ -21,7 +21,7 @@ class CommonSectionWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey),
+        border: Border.all(color: Colors.white),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -29,7 +29,8 @@ class CommonSectionWidget extends ConsumerWidget {
           GestureDetector(
             onTap: onExpand,
             child: Container(
-              color: Colors.grey[200],
+              // パネルの色指定
+              color: Colors.grey[10],
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
