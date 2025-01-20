@@ -69,28 +69,33 @@ class StartDayNotifier extends StateNotifier<int> {
   }
 
   Future<void> _initialize() async {
-    await _loadStartDay();
     ref.read(incomeViewModelProvider.notifier).loadData();
     ref.read(fixedCostViewModelProvider.notifier).loadData();
     ref.read(expenseViewModelProvider.notifier).loadData();
+    await _loadStartDay();
   }
 
+  Future<void> setStartDay(int day) async {
+    state = day;
 
-  Future<void> setStartDay(int newStartDay) async {
-    state = newStartDay;
+    // SharedPreferencesに保存
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('start_day', newStartDay);
+    await prefs.setInt('start_day', day);
+
+    // 開始日を基準に管理期間を計算
+    DateTime now = DateTime.now();
+    DateTime startDate = DateTime(now.year, now.month, state);
+    DateTime endDate = calculateEndDate(startDate);
+
+    // データを再ロードしてからフィルタリングを適用
+    await ref.read(expenseViewModelProvider.notifier).loadData();
+    _applyFilters(startDate, endDate);
+
+    // 管理期間メッセージを更新
+    _updateBudgetMessage(startDate, endDate);
+
+    print("開始日が更新されました: $day");
   }
-
-
-// // 管理期間の再計算
-// final now = DateTime.now();
-// final startDate = DateTime(now.year, now.month, state);
-// final endDate = calculateEndDate(startDate);
-//
-// // データの更新
-// _updateBudgetMessage(startDate, endDate);
-// _applyFilters(startDate, endDate);
 
 
   /// SharedPreferencesから開始日をロード
@@ -116,18 +121,39 @@ class StartDayNotifier extends StateNotifier<int> {
   /// 管理期間メッセージを更新
   void _updateBudgetMessage(DateTime startDate, DateTime endDate) {
     final budgetPeriodMessage =
-        "${startDate.month}月${startDate.day}日から${endDate.month}月${endDate.day}日までの家計簿を管理します";
-    ref.read(budgetPeriodProvider.notifier).state = budgetPeriodMessage;
+        "${startDate.month}月${startDate.day}日から${endDate.month}月${endDate
+        .day}日までの家計簿を管理します";
+    ref
+        .read(budgetPeriodProvider.notifier)
+        .state = budgetPeriodMessage;
   }
 
-  /// データのフィルタリングを適用
-  void _applyFilters(DateTime startDate, DateTime endDate) {
+  void _applyFilters(DateTime startDate, DateTime endDate) async {
+    print("データをフィルタリングしています: $startDate から $endDate");
+
+    // 総収入のフィルタリング
     ref.read(incomeViewModelProvider.notifier).filterByDateRange(startDate, endDate);
+    await ref.read(incomeViewModelProvider.notifier).saveData();
+
+    // 固定費のフィルタリング
     ref.read(fixedCostViewModelProvider.notifier).filterByDateRange(startDate, endDate);
+    await ref.read(fixedCostViewModelProvider.notifier).saveData();
+
+    // 支出のフィルタリング
     ref.read(expenseViewModelProvider.notifier).filterByDateRange(startDate, endDate);
+    await ref.read(expenseViewModelProvider.notifier).saveData();
+
+    print("フィルタリングと保存が完了しました。");
+  }
+
+
+  Future<void> _saveFilteredData() async {
+    await ref.read(incomeViewModelProvider.notifier).saveData();
+    await ref.read(fixedCostViewModelProvider.notifier).saveData();
+    await ref.read(expenseViewModelProvider.notifier).saveData();
+    print("フィルタリング後のデータを保存しました。");
   }
 }
-
 
 // 通知設定プロバイダー
 final notificationSettingProvider = StateNotifierProvider<NotificationSettingNotifier, bool>((ref) {

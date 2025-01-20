@@ -41,9 +41,10 @@ class SharedPreferencesManager {
     final prefs = await SharedPreferences.getInstance();
     try {
       final jsonString = prefs.getString(key);
-      print('Raw JSON for $key: $jsonString'); // ログ追加
+      print('Raw JSON for $key: $jsonString');
 
       if (jsonString == null || jsonString.isEmpty) {
+        print('No data found for key: $key');
         return [];
       }
 
@@ -54,6 +55,7 @@ class SharedPreferencesManager {
       return [];
     }
   }
+
 
   // データを削除
   Future<void> deleteData(String key) async {

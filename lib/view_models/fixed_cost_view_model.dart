@@ -9,7 +9,8 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
   final Ref ref;
 
   FixedCostViewModel(this.ref) : super([]);
-  bool _isDataLoaded = false;
+
+  List<FixedCost> get data => state;
 
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -17,7 +18,6 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
     await prefs.setString('fixed_costs', jsonData); // 固定費専用のキーを使用
     print('Fixed costs saved: $jsonData');
   }
-
 
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -32,11 +32,6 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
       print('No fixed costs found in SharedPreferences.');
     }
   }
-
-
-
-
-
   // 固定費データを追加
   void addItem(FixedCost fixedCost) async {
     final startDate = _getStartDate();
@@ -70,20 +65,12 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
 
   // 指定された期間でフィルタリング
   void filterByDateRange(DateTime startDate, DateTime endDate) {
-    try {
-      state = state.where((item) {
-        final date = item.date;
-        return date.isAfter(startDate) && date.isBefore(endDate);
-      }).toList();
-    } catch (e) {
-      print("Error in filterByDateRange: $e");
-    }
-  }
-
-  // 開始日より前のデータをフィルタリング
-  void _filterByStartDate() {
-    final startDate = _getStartDate();
-    state = state.where((item) => !item.date.isBefore(startDate)).toList();
+    state = state.where((item) {
+      final date = item.date;
+      return (date.isAfter(startDate) || date.isAtSameMomentAs(startDate)) &&
+          (date.isBefore(endDate) || date.isAtSameMomentAs(endDate));
+    }).toList();
+    print('Filtered fixedCost: $state');
   }
 }
 

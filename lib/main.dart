@@ -19,33 +19,7 @@ Future<void> main() async {
   await debugSharedPreferences();
   final container = ProviderContainer();
 
-  // 状態保持のためのフラグ
-  bool isDataLoaded = false;
   int initialPageIndex = prefs.getInt('page_index') ?? 1;
-
-  try {
-    print('SharedPreferences content: ${prefs.getKeys()}');
-    prefs.getKeys().forEach((key) {
-      print('$key: ${prefs.get(key)}');
-    });
-
-    // 各データをロード
-    print('Loading income data...');
-    await container.read(incomeViewModelProvider.notifier).loadData();
-    print('Income data loaded.');
-
-    print('Loading fixed costs data...');
-    await container.read(fixedCostViewModelProvider.notifier).loadData();
-    print('Fixed costs data loaded.');
-
-    print('Loading expenses data...');
-    await container.read(expenseViewModelProvider.notifier).loadData();
-    print('Expenses data loaded.');
-
-    isDataLoaded = true; // ロード成功
-  } catch (e) {
-    print('Error loading data: $e');
-  }
 
   // アプリ起動
   runApp(
@@ -53,15 +27,14 @@ Future<void> main() async {
       overrides: [
         pageIndexProvider.overrideWith((ref) => initialPageIndex),
       ],
-      child: MyApp(isDataLoaded: isDataLoaded),
+      child: MyApp(),
     ),
   );
 }
 
 class MyApp extends ConsumerWidget {
-  final bool isDataLoaded;
 
-  const MyApp({Key? key, required this.isDataLoaded}) : super(key: key);
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -71,21 +44,7 @@ class MyApp extends ConsumerWidget {
         primarySwatch: Colors.purple,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: isDataLoaded ? const MainScaffold() : const LoadingScreen(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-class LoadingScreen extends StatelessWidget {
-  const LoadingScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
+      home: const MainScaffold(),
     );
   }
 }

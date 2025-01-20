@@ -7,11 +7,10 @@ import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 import 'package:yosan_de_kakeibo/views/home/expense_section.dart';
-import 'package:yosan_de_kakeibo/views/home/fixed_costs_section.dart';
 import 'package:yosan_de_kakeibo/views/home/full_screen_fixed_costs_section.dart';
 import 'package:yosan_de_kakeibo/views/home/full_screen_income_section.dart';
 import 'package:yosan_de_kakeibo/views/home/income_section.dart';
-import 'package:yosan_de_kakeibo/views/widgets/common_section_widget.dart';
+import 'package:yosan_de_kakeibo/views/home/fixed_costs_section.dart';
 import 'package:yosan_de_kakeibo/views/widgets/input_area.dart';
 
 class HomePage extends ConsumerWidget {
@@ -53,24 +52,20 @@ class HomePage extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          CommonSectionWidget(
-            title: '総収入',
-            total: totalIncome,
+          IncomeSection(
             isExpanded: ref.watch(incomeExpandProvider),
-            onExpand: () {
+            onExpandToggle: () {
               ref.read(incomeExpandProvider.notifier).toggle();
             },
-            fullScreenWidget: const FullScreenIncomeSection(),
+            totalIncome: totalIncome,
           ),
           const Divider(height: 20, thickness: 2),
-          CommonSectionWidget(
-            title: '固定費',
-            total: totalFixedCosts,
+          FixedCostSection(
             isExpanded: ref.watch(fixedCostsExpandProvider),
-            onExpand: () {
+            onExpandToggle: () {
               ref.read(fixedCostsExpandProvider.notifier).toggle();
             },
-            fullScreenWidget: const FullScreenFixedCostsSection(),
+            totalFixedCosts: totalFixedCosts,
           ),
           const Divider(height: 20, thickness: 2),
           Expanded(

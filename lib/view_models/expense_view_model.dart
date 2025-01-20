@@ -11,7 +11,7 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
   ExpenseViewModel(this.ref) : super([]);
 
   List<Expense> get expenses => state;
-  bool _isDataLoaded = false;
+
 
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -19,7 +19,6 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
     await prefs.setString('expenses', jsonData); // 支出専用のキーを使用
     print('Expenses saved: $jsonData');
   }
-
 
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -66,12 +65,14 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
         isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
   }
 
-  // 指定された期間でフィルタリング
   void filterByDateRange(DateTime startDate, DateTime endDate) {
+    print("フィルタリング開始: $startDate から $endDate");
     state = state.where((item) {
       final date = item.date;
-      return date.isAfter(startDate) && date.isBefore(endDate);
+      print("検証中: $date");
+      return date.isAfter(startDate) || date.isAtSameMomentAs(startDate);
     }).toList();
+    print('フィルタリング結果: $state');
   }
 }
 
