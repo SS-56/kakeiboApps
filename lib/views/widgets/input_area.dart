@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 
 class InputArea extends ConsumerWidget {
   final TextEditingController titleController;
@@ -20,6 +21,10 @@ class InputArea extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final startDay = ref.watch(startDayProvider); // 開始日をRiverpodで取得
+    final now = DateTime.now();
+    final startDate = DateTime(now.year, now.month, startDay); // 開始日を設定
+
     return Container(
       color: Colors.grey[100],
       padding: const EdgeInsets.all(12),
@@ -37,7 +42,14 @@ class InputArea extends ConsumerWidget {
                   lastDate: DateTime(2100),
                 );
                 if (pickedDate != null) {
-                  onDateChange(pickedDate); // 日付を更新
+                  // 開始日より前の日付を選択した場合
+                  if (pickedDate.isBefore(startDate)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('開始日より前の日付は入力できません')),
+                    );
+                  } else {
+                    onDateChange(pickedDate); // 正しい日付を選択した場合はコールバックを呼び出し
+                  }
                 }
               },
               child: Container(
@@ -91,7 +103,8 @@ class InputArea extends ConsumerWidget {
             onPressed: () {
               onAdd();
               onDateChange(DateTime.now()); // 日付を現在の日付にリセット
-              }),
+            },
+          ),
         ],
       ),
     );

@@ -129,6 +129,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                     date: updatedDate,
                   ),
                 );
+
                 titleController.clear();
                 amountController.clear();
                 ref.read(fixedCostsDateProvider.notifier).state = DateTime.now(); // 日付リセット
