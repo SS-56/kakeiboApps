@@ -120,6 +120,17 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
               final title = titleController.text.trim();
               final amount = double.tryParse(amountController.text);
 
+              final int startDay = ref.read(startDayProvider);
+              final DateTime startDate = DateTime(now.year, now.month, startDay);
+
+              // 開始日前のデータかを確認
+              if (updatedDate.isBefore(startDate)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('全ての項目を入力してください。')),
+                );
+                return; // 処理を中断
+              }
+
               if (title.isNotEmpty && amount != null) {
                 // `addItem`メソッドでデータを追加
                 ref.read(fixedCostViewModelProvider.notifier).addItem(

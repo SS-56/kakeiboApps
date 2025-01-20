@@ -127,7 +127,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
               // 開始日前のデータかを確認
               if (updatedDate.isBefore(startDate)) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('開始日より前の日付のデータは入力できません')),
+                  SnackBar(content: Text('全ての項目を入力してください。')),
                 );
                 return; // 処理を中断
               }
