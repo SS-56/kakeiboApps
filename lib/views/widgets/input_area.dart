@@ -101,6 +101,36 @@ class InputArea extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.add, color: Colors.blue),
             onPressed: () {
+              final title = titleController.text.trim();
+              final amount = double.tryParse(amountController.text.trim());
+
+              // 入力チェック: すべてのデータが入力されているか
+              if (title.isEmpty || amount == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('全てのデータを入力してください')),
+                );
+                return; // 処理を中断
+              }
+
+              // 入力チェック: 日付が開始日より前か
+              final updatedDate = DateTime(
+                selectedDate.year,
+                selectedDate.month,
+                selectedDate.day,
+                now.hour,
+                now.minute,
+                now.second,
+                now.millisecond,
+              );
+
+              if (updatedDate.isBefore(startDate)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('開始日より前の日付は入力できません')),
+                );
+                return; // 処理を中断
+              }
+
+              // データが有効な場合はonAddを実行
               onAdd();
               onDateChange(DateTime.now()); // 日付を現在の日付にリセット
             },
