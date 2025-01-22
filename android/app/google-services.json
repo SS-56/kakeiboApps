@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "990417170613",
+    "project_id": "yosandekaiekbo",
+    "storage_bucket": "yosandekaiekbo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:990417170613:android:3a80fab55643e8a57a0efc",
+        "android_client_info": {
+          "package_name": "com.gappson56.yosandekakeibo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD41E0y7wGnCeKphd6A4xiIHIggLan2Ans"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

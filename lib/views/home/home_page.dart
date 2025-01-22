@@ -6,6 +6,7 @@ import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/update_view_model.dart';
 import 'package:yosan_de_kakeibo/views/home/expense_section.dart';
 import 'package:yosan_de_kakeibo/views/home/full_screen_fixed_costs_section.dart';
 import 'package:yosan_de_kakeibo/views/home/full_screen_income_section.dart';
@@ -42,6 +43,30 @@ class HomePage extends ConsumerWidget {
     final expensesTotal = expenses.fold(0.0, (sum, expense) => sum + expense.amount);
 
     final remainingBalance = totalIncome - totalFixedCosts - expensesTotal;
+
+    ref.listen<bool>(updateViewModelProvider, (previous, next) {
+      if (next) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('アップデートがあります'),
+            content: const Text('新しいバージョンをダウンロードしてください。'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('閉じる'),
+              ),
+            ],
+          ),
+        );
+      }
+    });
+
+    // 現在のバージョンを渡して確認
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print("update確認なかったんじゃね？");
+      ref.read(updateViewModelProvider.notifier).checkForUpdate('1.0.0');
+    });
 
     return Scaffold(
       appBar: AppBar(

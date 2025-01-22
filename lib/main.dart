@@ -1,11 +1,8 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yosan_de_kakeibo/services/shared_preferences_service.dart';
-import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
-import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
-import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
-import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'views/home/home_page.dart';
 import 'views/my_page/my_page.dart';
 import 'views/settings/setting_page.dart';
@@ -13,11 +10,12 @@ import 'providers/page_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  print("update確認中");
 
   final prefs = await SharedPreferences.getInstance();
   print('Starting App...');
   await debugSharedPreferences();
-  final container = ProviderContainer();
 
   int initialPageIndex = prefs.getInt('page_index') ?? 1;
 
