@@ -1,4 +1,4 @@
-package com.example.yosan_de_kakeibo
+package com.gappson56.yosandekakeibo
 
 import io.flutter.embedding.android.FlutterActivity
 

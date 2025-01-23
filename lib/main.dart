@@ -2,36 +2,32 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:yosan_de_kakeibo/services/shared_preferences_service.dart';
+import 'providers/page_providers.dart';
 import 'views/home/home_page.dart';
 import 'views/my_page/my_page.dart';
 import 'views/settings/setting_page.dart';
-import 'providers/page_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  print("update確認中");
+  print("Firebase 初期化完了");
 
+  // SharedPreferences 初期化
   final prefs = await SharedPreferences.getInstance();
-  print('Starting App...');
-  await debugSharedPreferences();
-
-  int initialPageIndex = prefs.getInt('page_index') ?? 1;
+  final initialPageIndex = prefs.getInt('page_index') ?? 1;
 
   // アプリ起動
   runApp(
     ProviderScope(
       overrides: [
-        pageIndexProvider.overrideWith((ref) => initialPageIndex),
+        pageIndexProvider.overrideWith((ref) => initialPageIndex), // 初期値を直接提供
       ],
-      child: MyApp(),
+      child: const MyApp(),
     ),
   );
 }
 
 class MyApp extends ConsumerWidget {
-
   const MyApp({Key? key}) : super(key: key);
 
   @override
@@ -52,6 +48,7 @@ class MainScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 現在のページインデックス
     final currentIndex = ref.watch(pageIndexProvider);
 
     // ページリスト
@@ -62,9 +59,7 @@ class MainScaffold extends ConsumerWidget {
     ];
 
     return Scaffold(
-      body: Center(
-        child: pages[currentIndex],
-      ),
+      body: pages[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),

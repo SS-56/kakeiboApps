@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
+import 'package:yosan_de_kakeibo/services/firebase_service.dart';
 import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
@@ -21,16 +26,6 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final newStartDay = ref.watch(startDayProvider);
-
-    // 開始日がロード中の場合
-    if (newStartDay == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     final expensesDate = ref.watch(expensesDateProvider);
@@ -44,29 +39,74 @@ class HomePage extends ConsumerWidget {
 
     final remainingBalance = totalIncome - totalFixedCosts - expensesTotal;
 
-    ref.listen<bool>(updateViewModelProvider, (previous, next) {
-      if (next) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('アップデートがあります'),
-            content: const Text('新しいバージョンをダウンロードしてください。'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('閉じる'),
+    bool isLoading = false;
+
+    // アップデート確認をリッスン
+    ref.listen<AsyncValue<void>>(checkForUpdateProvider, (_, state) {
+      state.when(
+        data: (_) {
+          final isUpdateRequired = ref.watch(updateDialogProvider);
+          if (isUpdateRequired) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('アップデートがあります'),
+                content: const Text('新しいバージョンをダウンロードしてください。'),
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      // プラットフォームごとのストアリンクを指定
+                      final storeLink = Platform.isIOS
+                          ? 'https://apps.apple.com/app/id123456789' // iOS App Store のURL
+                          : 'https://play.google.com/store/apps/details?id=com.example.app'; // Android Google Play Store のURL
+
+                      if (await canLaunchUrl(Uri.parse(storeLink))) {
+                        await launchUrl(Uri.parse(storeLink));
+                      } else {
+                        // リンクが開けない場合のエラー処理
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('ストアリンクを開けませんでした')),
+                        );
+                      }
+                    },
+                    child: const Text('OK'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context); // ダイアログを閉じる
+                      ref.read(updateDialogProvider.notifier).state = false; // 状態をリセット
+                    },
+                    child: const Text('キャンセル'),
+                  ),
+                ],
               ),
-            ],
-          ),
-        );
-      }
+            );
+          }
+        },
+        loading: () {
+          // ローディング中のインジケータ表示
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            },
+          );
+        },
+        error: (err, stack) {
+          print("エラー発生: $err");
+          Navigator.pop(context); // ローディングを閉じる
+        },
+      );
     });
 
-    // 現在のバージョンを渡して確認
+    // 起動時にアップデート確認をトリガー
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print("update確認なかったんじゃね？");
-      ref.read(updateViewModelProvider.notifier).checkForUpdate('1.0.0');
+      ref.read(checkForUpdateProvider);
     });
+
 
     return Scaffold(
       appBar: AppBar(
