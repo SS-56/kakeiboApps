@@ -39,8 +39,6 @@ class HomePage extends ConsumerWidget {
 
     final remainingBalance = totalIncome - totalFixedCosts - expensesTotal;
 
-    bool isLoading = false;
-
     // アップデート確認をリッスン
     ref.listen<AsyncValue<void>>(checkForUpdateProvider, (_, state) {
       state.when(
