@@ -70,7 +70,10 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
     }).toList();
     saveData(); // 常に保存を実行
   }
-
+  /// 全ての支出データを削除
+  void clearAllIncome() {
+    state = [];
+  }
 }
 
 final incomeViewModelProvider =

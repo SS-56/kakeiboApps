@@ -72,6 +72,10 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
     }).toList();
     print('Filtered fixedCost: $state');
   }
+  /// 全ての固定費を削除
+  void clearAllFixedCosts() {
+    state = [];
+  }
 }
 
 final fixedCostViewModelProvider =

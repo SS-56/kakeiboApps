@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 
 class SubscriptionPage extends ConsumerWidget {
@@ -157,16 +158,11 @@ class SubscriptionPage extends ConsumerWidget {
   void _subscribe(WidgetRef ref, String plan) async {
     try {
       await ref.read(subscriptionStatusProvider.notifier).saveStatus(plan);
-
-      ScaffoldMessenger.of(ref.context).showSnackBar(
-        SnackBar(content: Text("$plan に加入しました")),
-      );
-    } catch (error) {
-      ScaffoldMessenger.of(ref.context).showSnackBar(
-        SnackBar(content: Text("エラーが発生しました: $error")),
-      );
+    } catch (e) {
+      UIUtils.showErrorDialog(ref.context, "課金プランの選択中にエラーが発生しました: $e");
     }
   }
+
 
   Future<void> _navigateToSubscriptionManagement() async {
     final url = Platform.isIOS

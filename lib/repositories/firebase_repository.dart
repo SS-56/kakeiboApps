@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:yosan_de_kakeibo/models/expense.dart';
+import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
+import 'package:yosan_de_kakeibo/models/income.dart';
 import 'package:yosan_de_kakeibo/services/firebase_service.dart';
 
 class FirebaseRepository {
@@ -27,4 +30,12 @@ class FirebaseRepository {
     }
     return null; // 到達することはないが、安全のため
   }
+  Future<void> saveExpense(Expense expense) =>
+      _firebaseService.saveExpense(expense);
+
+  Future<void> saveIncome(Income income) =>
+      _firebaseService.saveIncome(income);
+
+  Future<void> saveFixedCost(FixedCost fixedCost) =>
+      _firebaseService.saveFixedCost(fixedCost);
 }

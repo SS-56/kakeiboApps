@@ -74,6 +74,10 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
     }).toList();
     print('フィルタリング結果: $state');
   }
+  /// 全ての支出データを削除
+  void clearAllExpenses() {
+    state = [];
+  }
 }
 
 final expenseViewModelProvider =

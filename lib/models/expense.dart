@@ -1,29 +1,37 @@
 class Expense {
+  final String? id;
   final String title; // 種類
   final double amount; // 金額
   final DateTime date; // 日付
 
   Expense({
+    this.id,
     required this.title,
     required this.amount,
     required this.date,
   });
 
-  // JSON形式に変換
-  Map<String, dynamic> toJson() {
-    return {
-      "title": title,
-      "amount": amount,
-      "date": date.toIso8601String(), // ISO 8601形式の文字列に変換
+  Map<String, dynamic> toJson({bool includeId = false}) {
+    final data = {
+      'title': title,
+      'amount': amount,
+      'date': date.toIso8601String(),
     };
+
+    if (includeId && id != null) {
+      data['id'] = id!;
+    }
+
+    return data;
   }
 
   // JSONから復元
   factory Expense.fromJson(Map<String, dynamic> json) {
     return Expense(
+      id: json['id'] as String?,
       title: json['title'],
       amount: (json['amount'] as num).toDouble(), // num型からdouble型に変換
-      date: DateTime.parse(json['date']), // ISO 8601形式からDateTime型に変換
+      date: DateTime.parse(json['date'] as String),
     );
   }
 

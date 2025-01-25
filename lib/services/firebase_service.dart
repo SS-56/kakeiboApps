@@ -2,6 +2,9 @@ import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:yosan_de_kakeibo/models/expense.dart';
+import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
+import 'package:yosan_de_kakeibo/models/income.dart';
 
 class FirebaseService {
   final FirebaseRemoteConfig _remoteConfig = FirebaseRemoteConfig.instance;
@@ -76,5 +79,22 @@ class FirebaseService {
       print("予期しないエラー: $e");
       throw Exception("予期しないエラーが発生しました。");
     }
+  }
+  // Expenseを保存
+  Future<void> saveExpense(Expense expense) async {
+    final data = expense.toJson();
+    await _firestore.collection('expenses').add(data);
+  }
+
+  // Incomeを保存
+  Future<void> saveIncome(Income income) async {
+    final data = income.toJson();
+    await _firestore.collection('incomes').add(data);
+  }
+
+  // FixedCostを保存
+  Future<void> saveFixedCost(FixedCost fixedCost) async {
+    final data = fixedCost.toJson();
+    await _firestore.collection('fixed_costs').add(data);
   }
 }
