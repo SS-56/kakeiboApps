@@ -2,11 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
-import 'package:yosan_de_kakeibo/services/firebase_service.dart';
+import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
 import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
@@ -15,8 +14,6 @@ import 'package:yosan_de_kakeibo/view_models/update_view_model.dart';
 import 'package:yosan_de_kakeibo/views/home/expense_section.dart';
 import 'package:yosan_de_kakeibo/views/home/full_screen_fixed_costs_section.dart';
 import 'package:yosan_de_kakeibo/views/home/full_screen_income_section.dart';
-import 'package:yosan_de_kakeibo/views/home/income_section.dart';
-import 'package:yosan_de_kakeibo/views/home/fixed_costs_section.dart';
 import 'package:yosan_de_kakeibo/views/widgets/common_section_widget.dart';
 import 'package:yosan_de_kakeibo/views/widgets/input_area.dart';
 
@@ -80,6 +77,9 @@ class HomePage extends ConsumerWidget {
               ),
             );
           }
+          if (newStartDay == null) {
+            return;
+          }
         },
         loading: () {
           // ローディング中のインジケータ表示
@@ -94,8 +94,9 @@ class HomePage extends ConsumerWidget {
           );
         },
         error: (err, stack) {
-          print("エラー発生: $err");
-          Navigator.pop(context); // ローディングを閉じる
+          print("errorかな？");
+          UIUtils.hideOverlay(context); // ローディングを閉じる
+          UIUtils.showErrorDialog(context, "アップデート確認中にエラーが発生しました。");
         },
       );
     });
