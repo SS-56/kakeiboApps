@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yosan_de_kakeibo/view_models/user_status_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
 
 class MyPage extends ConsumerWidget {
@@ -8,27 +8,27 @@ class MyPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userStatus = ref.watch(userStatusProvider); // 状態管理から課金状態を取得
+    final isPremium = ref.watch(subscriptionStatusProvider); // 課金状態を取得
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("マイページ"),
+        title: Text("マイページ"),
       ),
       body: Center(
-        child: userStatus.subscriptionPlan == 'free'
+        child: isPremium == 'free'
             ? _buildUpgradeMessage(context) // 無料プラン用メッセージを表示
-            : _buildSubscribedPlanCard(context, userStatus.subscriptionPlan), // 課金プラン加入済みのCardを表示
+            : _buildSubscribedPlanCard(context, isPremium), // 課金プラン加入済みのCardを表示
       ),
     );
   }
 
-  /// 無料プランの場合に表示するウィジェット
+  // 無料プランの場合に表示するウィジェット
   Widget _buildUpgradeMessage(BuildContext context) {
     return GestureDetector(
       onTap: () {
         _showUpgradeDialog(context); // 課金促進のダイアログを表示
       },
-      child: const Text(
+      child: Text(
         "無料プランでは\nこの機能は利用できません",
         style: TextStyle(
           fontSize: 24,
@@ -39,7 +39,7 @@ class MyPage extends ConsumerWidget {
     );
   }
 
-  /// プラン名を日本語に変換する関数
+  // プラン名を日本語に変換する関数
   String getLocalizedPlanName(String planName) {
     switch (planName) {
       case "basic":
@@ -51,7 +51,7 @@ class MyPage extends ConsumerWidget {
     }
   }
 
-  /// 課金プランに加入済みの場合に表示するウィジェット
+  // 課金プランに加入済みの場合に表示するウィジェット
   Widget _buildSubscribedPlanCard(BuildContext context, String planName) {
     final localizedPlanName = getLocalizedPlanName(planName); // 日本語プラン名を取得
     return Card(
@@ -62,14 +62,14 @@ class MyPage extends ConsumerWidget {
           children: [
             Text(
               "$localizedPlanNameに加入中",
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               "現在のプランを変更または確認する場合は以下をタップしてください。",
               style: TextStyle(fontSize: 16),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton(
@@ -81,7 +81,7 @@ class MyPage extends ConsumerWidget {
                     ),
                   );
                 },
-                child: const Text("課金プランを見る"),
+                child: Text("課金プランを見る"),
               ),
             ),
           ],
@@ -90,20 +90,20 @@ class MyPage extends ConsumerWidget {
     );
   }
 
-  /// 無料ユーザーへの課金促進メッセージ
+  // 無料ユーザーへの課金促進メッセージ
   void _showUpgradeDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: const Text("プランを選択してください"),
-          content: const Text("この機能を利用するには課金プランへの加入が必要です。"),
+          title: Text("プランを選択してください"),
+          content: Text("この機能を利用するには課金プランへの加入が必要です。"),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context); // ダイアログを閉じる
               },
-              child: const Text("キャンセル"),
+              child: Text("キャンセル"),
             ),
             TextButton(
               onPressed: () {
@@ -113,7 +113,7 @@ class MyPage extends ConsumerWidget {
                   MaterialPageRoute(builder: (context) => SubscriptionPage()),
                 ); // SubscriptionPageへの遷移を追加
               },
-              child: const Text("課金プランを確認する"),
+              child: Text("課金プランを確認する"),
             ),
           ],
         );
