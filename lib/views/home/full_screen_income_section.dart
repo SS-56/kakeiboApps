@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yosan_de_kakeibo/models/income.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
+import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
 import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/widgets/input_area.dart';
 
 class FullScreenIncomeSection extends ConsumerWidget {
@@ -12,8 +14,13 @@ class FullScreenIncomeSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
-    DateTime selectedDate = DateTime.now();
     final incomeDate = ref.watch(incomeDateProvider);
+
+    final isPaidUser = ref.watch(
+      subscriptionStatusProvider
+          .select((s) => s == SubscriptionStatusViewModel.basic || s == SubscriptionStatusViewModel.premium),
+    );
+    print('[DEBUG] FullScreenIncomeSection build => isPremium=$isPaidUser');
 
     return Scaffold(
       appBar: AppBar(
@@ -53,13 +60,16 @@ class FullScreenIncomeSection extends ConsumerWidget {
                       ),
                       onDismissed: (direction) {
                         // 削除処理
-                        ref.read(incomeViewModelProvider.notifier).removeItem(income);
+                        ref
+                            .read(incomeViewModelProvider.notifier)
+                            .removeItem(income);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('${income.title} が削除されました')),
                         );
                       },
                       child: Card(
-                        margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        margin:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         child: ListTile(
                           leading: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +77,8 @@ class FullScreenIncomeSection extends ConsumerWidget {
                             children: [
                               Text(
                                 '${income.date.year}/${income.date.month}/${income.date.day}', // 日付
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style:
+                                    TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                               Text(
                                 income.title, // 種類
@@ -84,12 +95,17 @@ class FullScreenIncomeSection extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          trailing: IconButton(
-                            icon: Icon(Icons.settings, color: Colors.grey), // 歯車アイコン
-                            onPressed: () {
-                              // 編集機能を追加する場合はここに実装
-                            },
-                          ),
+                          trailing: isPaidUser
+                              ? IconButton(
+                                  icon:
+                                      Icon(Icons.settings, color: Colors.grey),
+                                  // 歯車アイコン
+                                  onPressed: () {
+                                    _editIncome(context, ref, income);
+                                    // 編集機能を追加する場合はここに実装
+                                  },
+                                )
+                              : null,
                         ),
                       ),
                     );
@@ -98,7 +114,6 @@ class FullScreenIncomeSection extends ConsumerWidget {
               },
             ),
           ),
-
           InputArea(
             titleController: titleController,
             amountController: amountController,
@@ -122,7 +137,8 @@ class FullScreenIncomeSection extends ConsumerWidget {
               final amount = double.tryParse(amountController.text);
 
               final int startDay = ref.read(startDayProvider);
-              final DateTime startDate = DateTime(now.year, now.month, startDay);
+              final DateTime startDate =
+                  DateTime(now.year, now.month, startDay);
 
               // 開始日前のデータかを確認
               if (updatedDate.isBefore(startDate)) {
@@ -134,20 +150,56 @@ class FullScreenIncomeSection extends ConsumerWidget {
 
               if (title.isNotEmpty && amount != null) {
                 ref.read(incomeViewModelProvider.notifier).addItem(
-                  Income(
-                    title: title,
-                    amount: amount,
-                    date: updatedDate,
-                  ),
-                );
+                      Income(
+                        title: title,
+                        amount: amount,
+                        date: updatedDate,
+                      ),
+                    );
                 titleController.clear();
                 amountController.clear();
-                ref.read(incomeDateProvider.notifier).state = DateTime.now(); // 日付をリセット
+                ref.read(incomeDateProvider.notifier).state =
+                    DateTime.now(); // 日付をリセット
               }
             },
           ),
         ],
       ),
+    );
+  }
+
+  void _editIncome(BuildContext context, WidgetRef ref, Income income) {
+    showCardEditDialog(
+      context: context,
+      initialData: CardEditData(
+        title: income.title,
+        amount: income.amount,
+        date: income.date,
+        showMemo: true,
+        showRemember: true,
+        showWaste: false,
+        memo: income.memo,
+        isRemember: income.isRemember,
+        isWaste: false,
+      ),
+      onSave: ({
+        required String title,
+        required double amount,
+        required DateTime date,
+        required String? memo,
+        required bool isRemember,
+        required bool isWaste,
+      }) {
+        ref.read(incomeViewModelProvider.notifier).updateIncome(
+              income.copyWith(
+                title: title,
+                amount: amount,
+                date: date,
+                memo: memo,
+                isRemember: isRemember,
+              ),
+            );
+      },
     );
   }
 }

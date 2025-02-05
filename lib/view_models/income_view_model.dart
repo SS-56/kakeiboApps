@@ -4,22 +4,34 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yosan_de_kakeibo/models/income.dart';
 import '../providers/page_providers.dart';
+import '../repositories/firebase_repository.dart';
 
 class IncomeViewModel extends StateNotifier<List<Income>> {
   final Ref ref;
+  final FirebaseRepository _repository;
 
-  IncomeViewModel(this.ref) : super([]);
+  List<Income> savedIncomes = []; // ✅ **保存された収入データ**
+
+  IncomeViewModel(this.ref, this._repository) : super([]) {
+    loadData();
+  }
 
   List<Income> get data => state;
 
-  // データの保存
+  // ✅ **データの保存**
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonData = jsonEncode(state.map((e) => e.toJson()).toList());
     await prefs.setString('incomes', jsonData);
     print('Incomes saved: $jsonData');
+
+    // ✅ **保存された収入データも Firebase に保存**
+    for (var income in savedIncomes) {
+      await _repository.saveIncomeCard(income);
+    }
   }
 
+  // ✅ **データのロード**
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString('incomes');
@@ -32,9 +44,15 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
     } else {
       print('No incomes found in SharedPreferences.');
     }
+
+    // ✅ **Firebase から保存済みの収入データを取得**
+    savedIncomes = await _repository.getSavedIncomeCards();
+
+    // ✅ **ロード後に `state` に統合（保存データは常に残る）**
+    state = [...savedIncomes, ...state];
   }
 
-  // 収入データを追加
+  // ✅ **収入データを追加**
   void addItem(Income income) async {
     final startDate = _getStartDate();
     if (income.date.isBefore(startDate)) {
@@ -44,23 +62,29 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
     await saveData();
   }
 
-  // 開始日を取得
+  // ✅ **特定の収入を「保存」する**
+  Future<void> saveIncome(Income income) async {
+    savedIncomes.add(income);
+    await _repository.saveIncomeCard(income);
+  }
+
+  // ✅ **開始日を取得**
   DateTime _getStartDate() {
     final startDay = ref.read(startDayProvider);
     final now = DateTime.now();
     return DateTime(now.year, now.month, startDay);
   }
 
-  // 収入データを削除
+  // ✅ **収入データを削除**
   void removeItem(Income income) {
     state = state.where((item) => item != income).toList();
     saveData();
   }
 
-  // 収入データを並び替え
+  // ✅ **収入データを並び替え**
   void sortItems(bool isAscending) {
     state.sort((a, b) =>
-        isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
+    isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
   }
 
   void filterByDateRange(DateTime startDate, DateTime endDate) {
@@ -68,15 +92,26 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
       final date = item.date;
       return date.isAfter(startDate) || date.isAtSameMomentAs(startDate);
     }).toList();
-    saveData(); // 常に保存を実行
+    saveData();
   }
-  /// 全ての支出データを削除
+
+  /// ✅ **全ての収入データを削除**
   void clearAllIncome() {
     state = [];
   }
+
+  // ★ ここで更新メソッドを定義 ★
+  void updateIncome(Income updated) {
+    state = [
+      for (final inc in state)
+        if (inc == updated) updated else inc
+    ];
+  }
 }
 
+// ✅ **プロバイダーの更新**
 final incomeViewModelProvider =
-    StateNotifierProvider<IncomeViewModel, List<Income>>((ref) {
-  return IncomeViewModel(ref);
+StateNotifierProvider<IncomeViewModel, List<Income>>((ref) {
+  final repository = ref.read(firebaseRepositoryProvider);
+  return IncomeViewModel(ref, repository);
 });

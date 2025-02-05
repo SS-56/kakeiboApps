@@ -4,11 +4,17 @@ class Income {
   final String title;
   final double amount;
 
+  String? memo;
+  bool isRemember;
+
   Income({
     this.id,
     required this.date,
     required this.title,
     required this.amount,
+
+    this.memo,
+    this.isRemember = false,
   });
 
   Map<String, dynamic> toJson({bool includeId = false}) {
@@ -33,6 +39,23 @@ class Income {
       date: DateTime.parse(json['date'] as String),
     );
   }
+
+   Income copyWith({
+     String? title,
+     double? amount,
+     DateTime? date,
+     String? memo,
+     bool? isRemember,
+   }) {
+  return Income(
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      date: date ?? this.date,
+      memo: memo ?? this.memo,
+      isRemember: isRemember ?? this.isRemember,
+    );
+  }
+
   // 重複を判定するための比較演算子とハッシュコード
   @override
   bool operator ==(Object other) {
@@ -41,9 +64,6 @@ class Income {
         other.title == title &&
         other.amount == amount;
   }
-
-  // @override
-  // int get hashCode => date.hashCode ^ title.hashCode ^ amount.hashCode;
 
   @override
   int get hashCode => Object.hash(date, title, amount);

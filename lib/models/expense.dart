@@ -4,11 +4,17 @@ class Expense {
   final double amount; // 金額
   final DateTime date; // 日付
 
+  String? memo;
+  bool isWaste;
+
   Expense({
     this.id,
     required this.title,
     required this.amount,
     required this.date,
+
+    this.memo,
+    this.isWaste = false,
   });
 
   Map<String, dynamic> toJson({bool includeId = false}) {
@@ -32,6 +38,22 @@ class Expense {
       title: json['title'],
       amount: (json['amount'] as num).toDouble(), // num型からdouble型に変換
       date: DateTime.parse(json['date'] as String),
+    );
+  }
+
+   Expense copyWith({
+     String? title,
+     double? amount,
+     DateTime? date,
+     String? memo,
+     bool? isWaste,
+   }) {
+    return Expense(
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      date: date ?? this.date,
+      memo: memo ?? this.memo,
+      isWaste: isWaste ?? this.isWaste,
     );
   }
 

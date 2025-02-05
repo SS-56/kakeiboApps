@@ -7,12 +7,20 @@ class FixedCost {
   final DateTime date; // 修正：dateフィールドを追加
   final IconData? icon; // アイコンを追加
 
+  String? memo;
+  bool isWaste;
+  bool isRemember;
+
   FixedCost({
     this.id,
     required this.title,
     required this.amount,
     required this.date,
     this.icon, // アイコンをオプションで受け取る
+
+    this.memo,
+    this.isWaste = false,
+    this.isRemember = false,
   });
 
   @override
@@ -40,6 +48,22 @@ class FixedCost {
       title: json['title'],
       amount: (json['amount'] as num).toDouble(),
       date: DateTime.parse(json['date'] as String),
+    );
+  }
+
+    FixedCost copyWith({
+      String? title,
+      double? amount,
+      DateTime? date,
+      String? memo,
+      bool? isRemember,
+    }) {
+    return FixedCost(
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      date: date ?? this.date,
+      memo: memo ?? this.memo,
+      isRemember: isRemember ?? this.isRemember,
     );
   }
 

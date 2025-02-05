@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
 import 'package:yosan_de_kakeibo/models/income.dart';
@@ -6,6 +8,7 @@ import 'package:yosan_de_kakeibo/services/firebase_service.dart';
 
 class FirebaseRepository {
   final FirebaseService _firebaseService = FirebaseService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// ***課金プランの取得（リトライ付き）***
   Future<String?> getSubscriptionPlanWithRetry(String userId) async {
@@ -35,7 +38,32 @@ class FirebaseRepository {
 
   Future<void> saveIncome(Income income) =>
       _firebaseService.saveIncome(income);
+  // ✅ **収入をFirebaseに保存**
+  Future<void> saveIncomeCard(Income income) async {
+    await _firestore.collection('saved_income').doc(income.id).set(income.toJson());
+  }
+
+  // ✅ **保存された収入を取得**
+  Future<List<Income>> getSavedIncomeCards() async {
+    final snapshot = await _firestore.collection('saved_income').get();
+    return snapshot.docs.map((doc) => Income.fromJson(doc.data())).toList();
+  }
+
+  // ✅ **固定費をFirebaseに保存**
+  Future<void> saveFixedCostCard(FixedCost cost) async {
+    await _firestore.collection('saved_fixed_costs').doc(cost.id).set(cost.toJson());
+  }
+
+  // ✅ **保存された固定費を取得**
+  Future<List<FixedCost>> getSavedFixedCostCards() async {
+    final snapshot = await _firestore.collection('saved_fixed_costs').get();
+    return snapshot.docs.map((doc) => FixedCost.fromJson(doc.data())).toList();
+  }
 
   Future<void> saveFixedCost(FixedCost fixedCost) =>
       _firebaseService.saveFixedCost(fixedCost);
 }
+
+final firebaseRepositoryProvider = Provider<FirebaseRepository>((ref) {
+  return FirebaseRepository();
+});
