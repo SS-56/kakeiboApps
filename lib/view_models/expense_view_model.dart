@@ -78,6 +78,14 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
   void clearAllExpenses() {
     state = [];
   }
+  // ★ ここで更新メソッドを定義 ★
+  void updateExpense(Expense updated) {
+    state = [
+      for (final expense in state)
+        if (expense == updated) updated else expense
+    ];
+  }
+
 }
 
 final expenseViewModelProvider =

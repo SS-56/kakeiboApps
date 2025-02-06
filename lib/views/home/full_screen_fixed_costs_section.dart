@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
+import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/widgets/input_area.dart';
 
 class FullScreenFixedCostsSection extends ConsumerWidget {
@@ -14,6 +16,12 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
     final amountController = TextEditingController();
     DateTime selectedDate = DateTime.now();
     final fixedCostsDate = ref.watch(fixedCostsDateProvider);
+
+    final isPaidUser = ref.watch(
+      subscriptionStatusProvider.select((s) =>
+          s == SubscriptionStatusViewModel.basic ||
+          s == SubscriptionStatusViewModel.premium),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -62,7 +70,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                       },
                       child: Card(
                         margin:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         child: ListTile(
                           leading: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,8 +78,8 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                             children: [
                               Text(
                                 '${fixedCost.date.year}/${fixedCost.date.month}/${fixedCost.date.day}', // 日付
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey),
+                                style:
+                                    TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                               Text(
                                 fixedCost.title,
@@ -88,6 +96,14 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                               ),
                             ),
                           ),
+                          trailing: isPaidUser
+                              ? IconButton(
+                                  icon: const Icon(Icons.settings),
+                                  onPressed: () {
+                                    _editFixed(context, ref, fixedCost);
+                                  },
+                                )
+                              : null,
                         ),
                       ),
                     );
@@ -105,7 +121,8 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
               ref.read(fixedCostsDateProvider.notifier).state = newDate;
             },
             onAdd: () {
-              final selectedDate = ref.read(fixedCostsDateProvider);  // ここでselectedDateを取得
+              final selectedDate =
+                  ref.read(fixedCostsDateProvider); // ここでselectedDateを取得
               final now = DateTime.now();
               final updatedDate = DateTime(
                 selectedDate.year,
@@ -121,7 +138,8 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
               final amount = double.tryParse(amountController.text);
 
               final int startDay = ref.read(startDayProvider);
-              final DateTime startDate = DateTime(now.year, now.month, startDay);
+              final DateTime startDate =
+                  DateTime(now.year, now.month, startDay);
 
               // 開始日前のデータかを確認
               if (updatedDate.isBefore(startDate)) {
@@ -134,16 +152,17 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
               if (title.isNotEmpty && amount != null) {
                 // `addItem`メソッドでデータを追加
                 ref.read(fixedCostViewModelProvider.notifier).addItem(
-                  FixedCost(
-                    title: title,
-                    amount: amount,
-                    date: updatedDate,
-                  ),
-                );
+                      FixedCost(
+                        title: title,
+                        amount: amount,
+                        date: updatedDate,
+                      ),
+                    );
 
                 titleController.clear();
                 amountController.clear();
-                ref.read(fixedCostsDateProvider.notifier).state = DateTime.now(); // 日付リセット
+                ref.read(fixedCostsDateProvider.notifier).state =
+                    DateTime.now(); // 日付リセット
               }
             },
           ),
@@ -151,4 +170,38 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
       ),
     );
   }
+    void _editFixed(BuildContext context, WidgetRef ref, FixedCost fixedCost) {
+        showCardEditDialog(
+              context: context,
+              initialData: CardEditData(
+                title: fixedCost.title,
+                amount: fixedCost.amount,
+                date: fixedCost.date,
+                showMemo: true,        // 固定費もメモ機能ON
+                showRemember: true,    // 記憶アイコンON
+                showWaste: false,      // 固定費に浪費はなし
+                memo: fixedCost.memo,
+                isRemember: fixedCost.isRemember,
+                isWaste: false,
+              ),
+         onSave: ({
+           required String title,
+           required double amount,
+           required DateTime date,
+           required String? memo,
+           required bool isRemember,
+           required bool isWaste,
+         }) {
+           ref.read(fixedCostViewModelProvider.notifier).updateFixedCost(
+             fixedCost.copyWith(
+               title: title,
+               amount: amount,
+               date: date,
+               memo: memo,
+               isRemember: isRemember,
+             ),
+           );
+         },
+       );
+     }
 }

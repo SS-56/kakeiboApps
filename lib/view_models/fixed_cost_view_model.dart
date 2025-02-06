@@ -76,6 +76,14 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
   void clearAllFixedCosts() {
     state = [];
   }
+  // ★ ここで更新メソッドを定義 ★
+  void updateFixedCost(FixedCost updated) {
+    state = [
+      for (final fixedCost in state)
+        if (fixedCost == updated) updated else fixedCost
+    ];
+  }
+
 }
 
 final fixedCostViewModelProvider =

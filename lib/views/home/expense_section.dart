@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
+import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 
 final expensesExpandProvider = StateProvider<bool>((ref) => false);
 
@@ -22,6 +25,15 @@ class ExpenseSection extends StatelessWidget {
 
     final totalExpenses =
     sortedExpenses.fold(0.0, (sum, expense) => sum + expense.amount);
+
+        // 浪費合計 (1ヶ月間合算) の計算例
+        final wasteTotal = expenses
+            .where((e) => e.isWaste)
+            .fold<double>(0, (sum, e) => sum + e.amount);
+
+        final isPaidUser = ref.watch(
+          subscriptionStatusProvider.select((s) => s == SubscriptionStatusViewModel.premium || s == SubscriptionStatusViewModel.basic),
+        );
 
     return Column(
       children: [
@@ -118,14 +130,14 @@ class ExpenseSection extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    trailing: IconButton(
-                      icon: Icon(Icons.settings, color: Colors.grey),
-                      onPressed: () {
-                        // 設定ボタンの動作（必要に応じて実装）
-                      },
+                                      trailing: isPaidUser
+                                      ? IconButton(
+                                          icon: const Icon(Icons.settings),
+                                            onPressed: () => _editExpense(context, ref, expense),
+                                    )
+                                  : null,
                     ),
                   ),
-                ),
               );
             },
           ),
@@ -133,4 +145,38 @@ class ExpenseSection extends StatelessWidget {
       ],
     );
   }
+    void _editExpense(BuildContext context, WidgetRef ref, Expense expense) {
+        showCardEditDialog(
+             context: context,
+             initialData: CardEditData(
+               title: expense.title,
+               amount: expense.amount,
+               date: expense.date,
+               showMemo: false,       // 使った金額にメモ必要なら true
+               showRemember: false,   // 記憶アイコン不要
+               showWaste: true,       // 浪費アイコン表示
+               memo: expense.memo,
+               isRemember: false,
+               isWaste: expense.isWaste,
+             ),
+          onSave: ({
+            required String title,
+            required double amount,
+            required DateTime date,
+            required String? memo,
+            required bool isRemember,
+            required bool isWaste,
+          }) {
+            ref.read(expenseViewModelProvider.notifier).updateExpense(
+              expense.copyWith(
+                title: title,
+                amount: amount,
+                date: date,
+                memo: memo,
+                isWaste: isWaste,
+              ),
+            );
+          },
+        );
+      }
 }

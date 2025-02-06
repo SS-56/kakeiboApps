@@ -103,8 +103,8 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
   // ★ ここで更新メソッドを定義 ★
   void updateIncome(Income updated) {
     state = [
-      for (final inc in state)
-        if (inc == updated) updated else inc
+      for (final income in state)
+        if (income == updated) updated else income
     ];
   }
 }
