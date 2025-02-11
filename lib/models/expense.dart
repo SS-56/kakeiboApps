@@ -42,6 +42,7 @@ class Expense {
   }
 
    Expense copyWith({
+     String? id,
      String? title,
      double? amount,
      DateTime? date,
@@ -49,6 +50,7 @@ class Expense {
      bool? isWaste,
    }) {
     return Expense(
+      id: id ?? this.id,
       title: title ?? this.title,
       amount: amount ?? this.amount,
       date: date ?? this.date,
@@ -56,16 +58,4 @@ class Expense {
       isWaste: isWaste ?? this.isWaste,
     );
   }
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-          other is Expense &&
-              runtimeType == other.runtimeType &&
-              title == other.title &&
-              amount == other.amount &&
-              date == other.date;
-
-  @override
-  int get hashCode => title.hashCode ^ amount.hashCode ^ date.hashCode;
 }

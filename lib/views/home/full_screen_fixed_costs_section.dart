@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
@@ -153,6 +154,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                 // `addItem`メソッドでデータを追加
                 ref.read(fixedCostViewModelProvider.notifier).addItem(
                       FixedCost(
+                        id: const Uuid().v4(),
                         title: title,
                         amount: amount,
                         date: updatedDate,

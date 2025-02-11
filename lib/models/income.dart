@@ -40,14 +40,16 @@ class Income {
     );
   }
 
-   Income copyWith({
-     String? title,
-     double? amount,
-     DateTime? date,
-     String? memo,
-     bool? isRemember,
-   }) {
-  return Income(
+  Income copyWith({
+    String? id,
+    String? title,
+    double? amount,
+    DateTime? date,
+    String? memo,
+    bool? isRemember,
+  }) {
+    return Income(
+      id: id ?? this.id,
       title: title ?? this.title,
       amount: amount ?? this.amount,
       date: date ?? this.date,
@@ -55,16 +57,4 @@ class Income {
       isRemember: isRemember ?? this.isRemember,
     );
   }
-
-  // 重複を判定するための比較演算子とハッシュコード
-  @override
-  bool operator ==(Object other) {
-    return other is Income &&
-        other.date == date &&
-        other.title == title &&
-        other.amount == amount;
-  }
-
-  @override
-  int get hashCode => Object.hash(date, title, amount);
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
 import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
@@ -160,6 +161,7 @@ class HomePage extends ConsumerWidget {
 
               ref.read(expenseViewModelProvider.notifier).addItem(
                 Expense(
+                  id: const Uuid().v4(),
                   title: title,
                   amount: amount,
                   date: expensesDate,

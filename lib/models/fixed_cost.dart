@@ -52,6 +52,7 @@ class FixedCost {
   }
 
     FixedCost copyWith({
+      String? id,
       String? title,
       double? amount,
       DateTime? date,
@@ -59,6 +60,7 @@ class FixedCost {
       bool? isRemember,
     }) {
     return FixedCost(
+      id: id ?? this.id,
       title: title ?? this.title,
       amount: amount ?? this.amount,
       date: date ?? this.date,
@@ -66,15 +68,4 @@ class FixedCost {
       isRemember: isRemember ?? this.isRemember,
     );
   }
-
-  @override
-  bool operator ==(Object other) {
-    return other is FixedCost &&
-        other.date == date &&
-        other.title == title &&
-        other.amount == amount;
-  }
-
-  @override
-  int get hashCode => date.hashCode ^ title.hashCode ^ amount.hashCode;
 }

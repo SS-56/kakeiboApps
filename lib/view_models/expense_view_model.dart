@@ -82,10 +82,9 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
   void updateExpense(Expense updated) {
     state = [
       for (final expense in state)
-        if (expense == updated) updated else expense
+        if (expense.id == updated.id) updated else expense
     ];
   }
-
 }
 
 final expenseViewModelProvider =

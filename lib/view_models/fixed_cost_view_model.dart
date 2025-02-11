@@ -80,7 +80,7 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
   void updateFixedCost(FixedCost updated) {
     state = [
       for (final fixedCost in state)
-        if (fixedCost == updated) updated else fixedCost
+        if (fixedCost.id == updated.id) updated else fixedCost
     ];
   }
 

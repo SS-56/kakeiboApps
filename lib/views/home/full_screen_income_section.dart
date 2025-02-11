@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import 'package:yosan_de_kakeibo/models/income.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
@@ -99,11 +100,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
                               ? IconButton(
                                   icon:
                                       Icon(Icons.settings, color: Colors.grey),
-                                  // 歯車アイコン
-                                  onPressed: () {
-                                    _editIncome(context, ref, income);
-                                    // 編集機能を追加する場合はここに実装
-                                  },
+                                  onPressed: () => _editIncome(context, ref, income),
                                 )
                               : null,
                         ),
@@ -151,6 +148,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
               if (title.isNotEmpty && amount != null) {
                 ref.read(incomeViewModelProvider.notifier).addItem(
                       Income(
+                        id: const Uuid().v4(),
                         title: title,
                         amount: amount,
                         date: updatedDate,
