@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
 
 class FixedCost {
-  final String? id;
+  final String id;
   final String title; // 修正：nameをtitleに変更
   final double amount;
   final DateTime date; // 修正：dateフィールドを追加
   final IconData? icon; // アイコンを追加
 
   String? memo;
-  bool isWaste;
   bool isRemember;
 
   FixedCost({
-    this.id,
+    required this.id,
     required this.title,
     required this.amount,
     required this.date,
     this.icon, // アイコンをオプションで受け取る
 
     this.memo,
-    this.isWaste = false,
     this.isRemember = false,
   });
 
@@ -44,7 +42,7 @@ class FixedCost {
 
   static FixedCost fromJson(Map<String, dynamic> json) {
     return FixedCost(
-      id: json['id'] as String?,
+      id: json['id'] as String,
       title: json['title'],
       amount: (json['amount'] as num).toDouble(),
       date: DateTime.parse(json['date'] as String),

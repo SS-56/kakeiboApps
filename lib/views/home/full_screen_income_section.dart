@@ -148,7 +148,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
               if (title.isNotEmpty && amount != null) {
                 ref.read(incomeViewModelProvider.notifier).addItem(
                       Income(
-                        id: const Uuid().v4(),
+                        id: Uuid().v4(),
                         title: title,
                         amount: amount,
                         date: updatedDate,

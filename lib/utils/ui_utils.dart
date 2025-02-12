@@ -285,6 +285,9 @@ class _CardEditDialog extends ConsumerWidget {
                     }
                   },
                 ),
+                Text('${dateValue.year}/${dateValue.month}/${dateValue.day}',
+                  style: const TextStyle(fontSize: 14),
+                ),
               ],
             ),
 

@@ -161,7 +161,7 @@ class HomePage extends ConsumerWidget {
 
               ref.read(expenseViewModelProvider.notifier).addItem(
                 Expense(
-                  id: const Uuid().v4(),
+                  id: Uuid().v4(),
                   title: title,
                   amount: amount,
                   date: expensesDate,

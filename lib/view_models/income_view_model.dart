@@ -21,14 +21,16 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
   // ✅ **データの保存**
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonData = jsonEncode(state.map((e) => e.toJson()).toList());
+    // includeId: true でIDを含めて保存
+    final jsonData = jsonEncode(state.map((e) => e.toJson(includeId: true)).toList());
+
     await prefs.setString('incomes', jsonData);
     print('Incomes saved: $jsonData');
 
     // ✅ **保存された収入データも Firebase に保存**
-    for (var income in savedIncomes) {
-      await _repository.saveIncomeCard(income);
-    }
+    // for (var income in savedIncomes) {
+    //   await _repository.saveIncomeCard(income);
+    // }
   }
 
   // ✅ **データのロード**
@@ -46,10 +48,10 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
     }
 
     // ✅ **Firebase から保存済みの収入データを取得**
-    savedIncomes = await _repository.getSavedIncomeCards();
-
-    // ✅ **ロード後に `state` に統合（保存データは常に残る）**
-    state = [...savedIncomes, ...state];
+    // savedIncomes = await _repository.getSavedIncomeCards();
+    //
+    // // ✅ **ロード後に `state` に統合（保存データは常に残る）**
+    // state = [...savedIncomes, ...state];
   }
 
   // ✅ **収入データを追加**
@@ -103,9 +105,10 @@ class IncomeViewModel extends StateNotifier<List<Income>> {
   // ★ ここで更新メソッドを定義 ★
   void updateIncome(Income updated) {
     state = [
-      for (final inc in state)
-        if (inc.id == updated.id) updated else inc
+      for (final income in state)
+        if (income.id == updated.id) updated else income
     ];
+    saveData();
   }
 }
 

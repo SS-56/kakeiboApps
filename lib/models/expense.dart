@@ -1,5 +1,5 @@
 class Expense {
-  final String? id;
+  final String id;
   final String title; // 種類
   final double amount; // 金額
   final DateTime date; // 日付
@@ -8,7 +8,7 @@ class Expense {
   bool isWaste;
 
   Expense({
-    this.id,
+    required this.id,
     required this.title,
     required this.amount,
     required this.date,
@@ -34,7 +34,7 @@ class Expense {
   // JSONから復元
   factory Expense.fromJson(Map<String, dynamic> json) {
     return Expense(
-      id: json['id'] as String?,
+      id: json['id'] as String,
       title: json['title'],
       amount: (json['amount'] as num).toDouble(), // num型からdouble型に変換
       date: DateTime.parse(json['date'] as String),

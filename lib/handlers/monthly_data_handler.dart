@@ -20,7 +20,7 @@ void clearMonthlyData({
   amount: 0,
   date: DateTime.now(),
         memo: '',
-        isRemember: false,
+        isRemember: false, id: '',
   );
   }
 
@@ -35,8 +35,7 @@ void clearMonthlyData({
   amount: 0,
   date: DateTime.now(),
         memo: '',
-        isWaste: false,
-        isRemember: false,
+        isRemember: false, id: '',
   );
   }
 
@@ -48,7 +47,7 @@ void clearMonthlyData({
   amount: 0,
   date: DateTime.now(),
         memo: '',
-        isWaste: false,
+        isWaste: false, id: '',
   );
   }
 }

@@ -15,7 +15,9 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
 
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonData = jsonEncode(state.map((e) => e.toJson()).toList());
+
+    final jsonData = jsonEncode(state.map((e) => e.toJson(includeId: true)).toList());
+
     await prefs.setString('expenses', jsonData); // 支出専用のキーを使用
     print('Expenses saved: $jsonData');
   }
@@ -84,6 +86,7 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
       for (final expense in state)
         if (expense.id == updated.id) updated else expense
     ];
+    saveData();
   }
 }
 

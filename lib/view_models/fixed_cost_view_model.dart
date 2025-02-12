@@ -14,7 +14,9 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
 
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonData = jsonEncode(state.map((e) => e.toJson()).toList());
+
+    final jsonData = jsonEncode(state.map((e) => e.toJson(includeId: true)).toList());
+
     await prefs.setString('fixed_costs', jsonData); // 固定費専用のキーを使用
     print('Fixed costs saved: $jsonData');
   }
@@ -82,6 +84,7 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
       for (final fixedCost in state)
         if (fixedCost.id == updated.id) updated else fixedCost
     ];
+    saveData();
   }
 
 }

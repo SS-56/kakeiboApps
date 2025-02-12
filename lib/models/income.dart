@@ -1,21 +1,30 @@
+import 'package:flutter/material.dart';
+
 class Income {
-  final String? id;
+  final String id;
   final DateTime date;
   final String title;
   final double amount;
+  final IconData? icon; // アイコンを追加
 
   String? memo;
   bool isRemember;
 
   Income({
-    this.id,
+    required this.id,
     required this.date,
     required this.title,
     required this.amount,
+    this.icon, // アイコンをオプションで受け取る
 
     this.memo,
     this.isRemember = false,
   });
+
+  @override
+  String toString() {
+    return 'Income(title: $title, amount: $amount, date: $date)';
+  }
 
   Map<String, dynamic> toJson({bool includeId = false}) {
     final data = {
@@ -33,7 +42,7 @@ class Income {
 
   static Income fromJson(Map<String, dynamic> json) {
     return Income(
-      id: json['id'] as String?,
+      id: json['id'] as String,
       title: json['title'],
       amount: json['amount'],
       date: DateTime.parse(json['date'] as String),

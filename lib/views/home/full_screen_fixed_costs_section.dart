@@ -154,7 +154,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                 // `addItem`メソッドでデータを追加
                 ref.read(fixedCostViewModelProvider.notifier).addItem(
                       FixedCost(
-                        id: const Uuid().v4(),
+                        id: Uuid().v4(),
                         title: title,
                         amount: amount,
                         date: updatedDate,
