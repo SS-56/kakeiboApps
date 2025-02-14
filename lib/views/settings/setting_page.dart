@@ -11,6 +11,7 @@ import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/home/expense_section.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
+import 'package:yosan_de_kakeibo/utils/ui_utils.dart'; // showMyDatePicker をimport
 
 
 class SettingsPage extends ConsumerWidget {
@@ -241,105 +242,87 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+  /// 通常のshowDatePickerをラップした関数
+  Future<DateTime?> showMyDatePicker({
+    required BuildContext context,
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+    return picked; // null ならキャンセル。DateTimeなら選択日付。
+  }
 
   void _confirmResetData(BuildContext context, WidgetRef ref, int newDay) {
     // 最初の確認を表示
     _showFirstConfirmation(context, ref, newDay);
   }
 
-  void _selectStartDay(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+  void _selectStartDay(BuildContext context, WidgetRef ref) async {
+    final now = DateTime.now();
+    // 現在の開始日
+    final selectedDay = ref.read(startDayProvider);
+
+    // 既定のinitialDate (「現在の開始日」を使う)
+    final initialDate = DateTime(now.year, now.month, selectedDay);
+
+    // カレンダー選択の範囲を簡単に当月に限定する例
+    final firstDate = DateTime(now.year, now.month, 1);
+    final lastDay = DateTime(now.year, now.month + 1, 0).day; // 月末日
+    final lastDate = DateTime(now.year, now.month, lastDay);
+
+    final pickedDate = await showMyDatePicker(
       context: context,
-      isScrollControlled: true,
-      builder: (BuildContext modalContext) {
-        DateTime now = DateTime.now();
-        int selectedDay = ref.read(startDayProvider);
-
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return SizedBox(
-              height: 300,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "家計簿開始日を選択",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  Expanded(
-                    child: CupertinoPicker(
-                      itemExtent: 32.0,
-                      scrollController: FixedExtentScrollController(
-                        initialItem: selectedDay - 1,
-                      ),
-                      onSelectedItemChanged: (index) {
-                        setState(() {
-                          selectedDay = index + 1; // 選択された日付を更新
-                        });
-                      },
-                      children: List<Widget>.generate(
-                        DateTime(now.year, now.month + 1, 0).day,
-                            (index) => Center(child: Text("${index + 1}日")),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.all(8),
-                    child: Text(
-                      "選択中: ${now.month}月$selectedDay日",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(modalContext).pop(); // ボトムシートを閉じる
-
-                      if (selectedDay != ref.read(startDayProvider)) {
-                        // 開始日を変更する場合に確認ダイアログを表示
-                        _confirmStartDateChange(
-                          context,
-                          ref,
-                          DateTime(now.year, now.month, selectedDay),
-                        );
-                      } else {
-                        print("日付に変更はありません");
-                      }
-                    },
-                    child: Text("確定"),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
+
+    if (pickedDate != null) {
+      // 新しい日が選ばれた
+      if (pickedDate.day != selectedDay) {
+        // 開始日が変わるなら確認ダイアログ
+        _updateStartDay(ref, pickedDate.day);
+      } else {
+        print("日付に変更はありません");
+      }
+    } else {
+      print("ユーザーがキャンセルしました");
+    }
   }
 
-  void _confirmStartDateChange(BuildContext context, WidgetRef ref, DateTime newStartDate) {
+  /// 開始日を変更する確認ダイアログ例
+  void _confirmStartDateChange(
+      BuildContext context,
+      WidgetRef ref,
+      DateTime newDate,
+      ) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("確認"),
-          content: Text("開始する日付以前のデータは消去されます。\nよろしいですか？"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // ダイアログを閉じる
-              },
-              child: Text("キャンセル"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // ダイアログを閉じる
-                _updateStartDay(ref, newStartDate.day); // 状態を更新
-              },
-              child: Text("はい"),
-            ),
-          ],
-        );
-      },
+      builder: (_) => AlertDialog(
+        title: const Text("開始日を変更してもいいですか？"),
+        content: Text("${newDate.month}月${newDate.day}日に変更します。"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("キャンセル"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // 開始日を更新
+              ref.read(startDayProvider.notifier).state = newDate.day;
+              print("開始日を${newDate.day}日に変更しました");
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
     );
   }
 

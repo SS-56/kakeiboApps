@@ -247,26 +247,6 @@ class _CardEditDialog extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ▼ タイトル
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: '種類'),
-              onChanged: (value) {
-                ref.read(_titleProvider.notifier).state = value;
-              },
-            ),
-
-            // ▼ 金額
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: '金額'),
-              onChanged: (value) {
-                final parsed = double.tryParse(value) ?? 0.0;
-                ref.read(_amountProvider.notifier).state = parsed;
-              },
-            ),
-
             // ▼ 日付
             Row(
               children: [
@@ -290,7 +270,25 @@ class _CardEditDialog extends ConsumerWidget {
                 ),
               ],
             ),
+            // ▼ タイトル
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: '種類'),
+              onChanged: (value) {
+                ref.read(_titleProvider.notifier).state = value;
+              },
+            ),
 
+            // ▼ 金額
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: '金額'),
+              onChanged: (value) {
+                final parsed = double.tryParse(value) ?? 0.0;
+                ref.read(_amountProvider.notifier).state = parsed;
+              },
+            ),
             // ▼ メモ(オプション)
             // ここで showMemo などのフラグを使うには、同様にProviderをoverrideしてもいいし
             // or builder引数(= constructor)を使う
@@ -298,6 +296,7 @@ class _CardEditDialog extends ConsumerWidget {
             (memoValue != null) ? TextField(
               controller: memoController,
               decoration: const InputDecoration(labelText: 'メモ'),
+              minLines: 4, maxLines: null,
               onChanged: (value) {
                 ref.read(_memoProvider.notifier).state = value;
               },
