@@ -133,49 +133,44 @@ class UIUtils {
     );
   }
 }
-
-/// ダイアログ呼び出し用の編集データ
+/// ダイアログに渡す初期データ (UI表示の設定も含む)
 class CardEditData {
-    final String title;      // 種類
-    final double amount;     // 金額
-    final DateTime date;     // 日付
-    final bool showMemo;     // メモ機能を使うか
-    final bool showRemember; // 記憶アイコンを出すか
-    final bool showWaste;    // 浪費アイコンを出すか
-    final String? memo;
-    final bool isRemember;
-    final bool isWaste;
+  final String title;      // 種類
+  final double amount;     // 金額
+  final DateTime date;     // 日付
 
-    CardEditData({
-      required this.title,
-      required this.amount,
-      required this.date,
-      required this.showMemo,
-      required this.showRemember,
-      required this.showWaste,
-      this.memo,
-      this.isRemember = false,
-      this.isWaste = false,
-    });
-  }
+  final bool showMemo;     // メモ機能を使うか
+  final bool showRemember; // 記憶アイコンを出すか
+  final bool showWaste;    // 浪費アイコンを出すか
 
+  final String? memo;      // メモ初期値
+  final bool isRemember;   // 記憶アイコン 初期値
+  final bool isWaste;      // 浪費アイコン 初期値
+
+  CardEditData({
+    required this.title,
+    required this.amount,
+    required this.date,
+    required this.showMemo,
+    required this.showRemember,
+    required this.showWaste,
+    this.memo,
+    this.isRemember = false,
+    this.isWaste = false,
+  });
+}
+
+/// 「保存」ボタン押下時のコールバック型
 typedef OnSaveCardEdit = void Function({
-  required String title,
-  required double amount,
-  required DateTime date,
-  required String? memo,
-  required bool isRemember,
-  required bool isWaste,
+required String title,
+required double amount,
+required DateTime date,
+required String? memo,
+required bool isRemember,
+required bool isWaste,
 });
 
-/// 以下6つのProviderを用意 (autoDisposeでダイアログ閉じたら破棄されるように)
-final _titleProvider = StateProvider.autoDispose<String>((ref) => '');
-final _amountProvider = StateProvider.autoDispose<double>((ref) => 0.0);
-final _dateProvider = StateProvider.autoDispose<DateTime>((ref) => DateTime.now());
-final _memoProvider = StateProvider.autoDispose<String?>((ref) => '');
-final _rememberProvider = StateProvider.autoDispose<bool>((ref) => false);
-final _wasteProvider = StateProvider.autoDispose<bool>((ref) => false);
-
+/// ダイアログ呼び出し関数
 Future<void> showCardEditDialog({
   required BuildContext context,
   required CardEditData initialData,
@@ -183,146 +178,138 @@ Future<void> showCardEditDialog({
 }) {
   return showDialog(
     context: context,
-    builder: (_) {
-      return ProviderScope(
-        overrides: [
-          // 各Providerの初期値を上書きする
-          _titleProvider.overrideWith((ref) => initialData.title),
-          _amountProvider.overrideWith((ref) => initialData.amount),
-          _dateProvider.overrideWith((ref) => initialData.date),
-          _memoProvider.overrideWith((ref) => initialData.memo ?? ''),
-          _rememberProvider.overrideWith((ref) => initialData.isRemember),
-          _wasteProvider.overrideWith((ref) => initialData.isWaste),
-
-          // onSave の注入
-          _onSaveProvider.overrideWithValue(onSave),
-        ],
-        // ダイアログ本体をConsumerWidgetで描画
-        child: const _CardEditDialog(),
-      );
-    },
+    builder: (_) => _CardEditDialog(
+      initialData: initialData,
+      onSave: onSave,
+    ),
   );
 }
 
-final _onSaveProvider = Provider.autoDispose<OnSaveCardEdit>((ref) {
-  // ダミー(実際にoverrideするので呼ばれない想定)
-  return ({
-    required String title,
-    required double amount,
-    required DateTime date,
-    required String? memo,
-    required bool isRemember,
-    required bool isWaste,
-  }) {};
-});
+/// ダイアログ本体: StatefulWidget
+class _CardEditDialog extends StatefulWidget {
+  final CardEditData initialData;
+  final OnSaveCardEdit onSave;
 
-class _CardEditDialog extends ConsumerWidget {
-  const _CardEditDialog({Key? key}) : super(key: key);
+  const _CardEditDialog({
+    Key? key,
+    required this.initialData,
+    required this.onSave,
+  }) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // 各StateProviderの値を読み取る
-    final titleValue = ref.watch(_titleProvider);
-    final amountValue = ref.watch(_amountProvider);
-    final dateValue = ref.watch(_dateProvider);
-    final memoValue = ref.watch(_memoProvider);
-    final rememberValue = ref.watch(_rememberProvider);
-    final wasteValue = ref.watch(_wasteProvider);
+  _CardEditDialogState createState() => _CardEditDialogState();
+}
 
-    // 書き換えるときは .notifier.state に代入
-    // => TextFieldやSwitchのonChangedでやる
+/// State部
+class _CardEditDialogState extends State<_CardEditDialog> {
+  late TextEditingController _titleCtrl;
+  late TextEditingController _amountCtrl;
+  late TextEditingController _memoCtrl;
 
-    // onSave を呼び出すためのProvider
-    final onSaveCallback = ref.read(_onSaveProvider);
+  late DateTime _localDate;
+  late bool _localIsRemember;
+  late bool _localIsWaste;
 
-    // それ以外に titleValue, amountValue は double/string だから
-    // テキストフィールドとのバインドはこんな形にする
-    final titleController = TextEditingController(text: titleValue);
-    final amountController = TextEditingController(text: amountValue.toString());
-    final memoController = TextEditingController(text: memoValue ?? '');
+  @override
+  void initState() {
+    super.initState();
+    // 1) initStateで一回だけ初期化
+    _titleCtrl = TextEditingController(text: widget.initialData.title);
+    _amountCtrl = TextEditingController(
+      text: widget.initialData.amount.toString(),
+    );
+    _memoCtrl = TextEditingController(text: widget.initialData.memo ?? '');
 
+    _localDate = widget.initialData.date;
+    _localIsRemember = widget.initialData.isRemember;
+    _localIsWaste = widget.initialData.isWaste;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('カード編集 (ConsumerWidget版)'),
+      title: const Text('カード編集'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ▼ 日付
+            // 日付
             Row(
               children: [
-                Text('日付: ${dateValue.toLocal()}'.split(' ')[0]),
+                const Text('日付: '),
                 IconButton(
                   icon: const Icon(Icons.calendar_today),
                   onPressed: () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: dateValue,
+                      initialDate: _localDate,
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2100),
                     );
                     if (picked != null) {
-                      ref.read(_dateProvider.notifier).state = picked;
+                      setState(() {
+                        _localDate = picked;
+                      });
                     }
                   },
                 ),
-                Text('${dateValue.year}/${dateValue.month}/${dateValue.day}',
-                  style: const TextStyle(fontSize: 14),
-                ),
+                Text('${_localDate.year}/${_localDate.month}/${_localDate.day}'),
               ],
             ),
-            // ▼ タイトル
+
+            // 種類
             TextField(
-              controller: titleController,
+              controller: _titleCtrl,
               decoration: const InputDecoration(labelText: '種類'),
-              onChanged: (value) {
-                ref.read(_titleProvider.notifier).state = value;
-              },
             ),
 
-            // ▼ 金額
+            // 金額
             TextField(
-              controller: amountController,
+              controller: _amountCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: '金額'),
-              onChanged: (value) {
-                final parsed = double.tryParse(value) ?? 0.0;
-                ref.read(_amountProvider.notifier).state = parsed;
-              },
-            ),
-            // ▼ メモ(オプション)
-            // ここで showMemo などのフラグを使うには、同様にProviderをoverrideしてもいいし
-            // or builder引数(= constructor)を使う
-            // ここでは一例として "memoValue != null" で出すと仮定
-            (memoValue != null) ? TextField(
-              controller: memoController,
-              decoration: const InputDecoration(labelText: 'メモ'),
-              minLines: 4, maxLines: null,
-              onChanged: (value) {
-                ref.read(_memoProvider.notifier).state = value;
-              },
-            ) : Container(),
-
-            // ▼ 記憶アイコン
-            Row(
-              children: [
-                const Text('記憶アイコン'),
-                Switch(
-                  value: rememberValue,
-                  onChanged: (v) => ref.read(_rememberProvider.notifier).state = v,
-                ),
-              ],
             ),
 
-            // ▼ 浪費アイコン
-            Row(
-              children: [
-                const Text('浪費アイコン'),
-                Switch(
-                  value: wasteValue,
-                  onChanged: (v) => ref.read(_wasteProvider.notifier).state = v,
-                ),
-              ],
-            ),
+            // メモ
+            if (widget.initialData.showMemo)
+              TextField(
+                controller: _memoCtrl,
+                decoration: const InputDecoration(labelText: 'メモ'),
+                minLines: 4,
+                maxLines: null,
+              ),
+
+            // 記憶アイコン
+            if (widget.initialData.showRemember)
+              Row(
+                children: [
+                  const Text('記憶アイコン'),
+                  Switch(
+                    value: _localIsRemember,
+                    onChanged: (v) {
+                      setState(() {
+                        _localIsRemember = v;
+                      });
+                    },
+                  ),
+                ],
+              ),
+
+            // 浪費アイコン
+            if (widget.initialData.showWaste)
+              Row(
+                children: [
+                  const Text('浪費アイコン'),
+                  Switch(
+                    value: _localIsWaste,
+                    onChanged: (v) {
+                      setState(() {
+                        _localIsWaste = v;
+                      });
+                    },
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -333,21 +320,14 @@ class _CardEditDialog extends ConsumerWidget {
         ),
         ElevatedButton(
           onPressed: () {
-            // 「保存」押下時、現在のProviderの値を読み取り onSaveCallback を呼ぶ
-            final currentTitle = ref.read(_titleProvider.notifier).state;
-            final currentAmount = ref.read(_amountProvider.notifier).state;
-            final currentDate = ref.read(_dateProvider.notifier).state;
-            final currentMemo = ref.read(_memoProvider.notifier).state;
-            final currentRemember = ref.read(_rememberProvider.notifier).state;
-            final currentWaste = ref.read(_wasteProvider.notifier).state;
-
-            onSaveCallback(
-              title: currentTitle,
-              amount: currentAmount,
-              date: currentDate,
-              memo: currentMemo,
-              isRemember: currentRemember,
-              isWaste: currentWaste,
+            final parsedAmt = double.tryParse(_amountCtrl.text) ?? 0.0;
+            widget.onSave(
+              title: _titleCtrl.text,
+              amount: parsedAmt,
+              date: _localDate,
+              memo: _memoCtrl.text,
+              isRemember: _localIsRemember,
+              isWaste: _localIsWaste,
             );
             Navigator.pop(context);
           },

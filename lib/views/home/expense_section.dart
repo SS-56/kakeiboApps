@@ -19,21 +19,22 @@ class ExpenseSection extends StatelessWidget {
     final expenses = ref.watch(expenseViewModelProvider);
     final isAscending = ref.watch(sortOrderProvider);
     final sortedExpenses = List.from(expenses)
-      ..sort((a, b) => isAscending
-          ? a.date.compareTo(b.date)
-          : b.date.compareTo(a.date));
+      ..sort((a, b) =>
+          isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
 
     final totalExpenses =
-    sortedExpenses.fold(0.0, (sum, expense) => sum + expense.amount);
+        sortedExpenses.fold(0.0, (sum, expense) => sum + expense.amount);
 
-        // 浪費合計 (1ヶ月間合算) の計算例
-        final wasteTotal = expenses
-            .where((e) => e.isWaste)
-            .fold<double>(0, (sum, e) => sum + e.amount);
+    // 浪費合計 (1ヶ月間合算) の計算例
+    final wasteTotal = expenses
+        .where((e) => e.isWaste)
+        .fold<double>(0, (sum, e) => sum + e.amount);
 
-        final isPaidUser = ref.watch(
-          subscriptionStatusProvider.select((s) => s == SubscriptionStatusViewModel.premium || s == SubscriptionStatusViewModel.basic),
-        );
+    final isPaidUser = ref.watch(
+      subscriptionStatusProvider.select((s) =>
+          s == SubscriptionStatusViewModel.premium ||
+          s == SubscriptionStatusViewModel.basic),
+    );
 
     return Column(
       children: [
@@ -48,7 +49,7 @@ class ExpenseSection extends StatelessWidget {
               GestureDetector(
                 onTap: () {
                   ref.read(expensesExpandProvider.notifier).state =
-                  !ref.read(expensesExpandProvider.notifier).state;
+                      !ref.read(expensesExpandProvider.notifier).state;
                 },
                 child: Container(
                   height: MediaQuery.of(context).size.height / 20,
@@ -130,14 +131,18 @@ class ExpenseSection extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                                      trailing: isPaidUser
-                                      ? IconButton(
-                                          icon: const Icon(Icons.settings),
-                                            onPressed: () => _editExpense(context, ref, expense),
-                                    )
-                                  : null,
-                    ),
+                    subtitle: (expense.memo != null && expense.memo!.isNotEmpty)
+                        ? Text('メモ: ${expense.memo}')
+                        : null,
+                    trailing: isPaidUser
+                        ? IconButton(
+                            icon: const Icon(Icons.settings),
+                            onPressed: () =>
+                                _editExpense(context, ref, expense),
+                          )
+                        : null,
                   ),
+                ),
               );
             },
           ),
@@ -145,29 +150,33 @@ class ExpenseSection extends StatelessWidget {
       ],
     );
   }
-    void _editExpense(BuildContext context, WidgetRef ref, Expense expense) {
-        showCardEditDialog(
-             context: context,
-             initialData: CardEditData(
-               title: expense.title,
-               amount: expense.amount,
-               date: expense.date,
-               showMemo: false,       // 使った金額にメモ必要なら true
-               showRemember: false,   // 記憶アイコン不要
-               showWaste: true,       // 浪費アイコン表示
-               memo: expense.memo,
-               isRemember: false,
-               isWaste: expense.isWaste,
-             ),
-          onSave: ({
-            required String title,
-            required double amount,
-            required DateTime date,
-            required String? memo,
-            required bool isRemember,
-            required bool isWaste,
-          }) {
-            ref.read(expenseViewModelProvider.notifier).updateExpense(
+
+  void _editExpense(BuildContext context, WidgetRef ref, Expense expense) {
+    showCardEditDialog(
+      context: context,
+      initialData: CardEditData(
+        title: expense.title,
+        amount: expense.amount,
+        date: expense.date,
+        showMemo: true,
+        // 使った金額にメモ必要なら true
+        showRemember: false,
+        // 記憶アイコン不要
+        showWaste: true,
+        // 浪費アイコン表示
+        memo: expense.memo,
+        isRemember: false,
+        isWaste: expense.isWaste,
+      ),
+      onSave: ({
+        required String title,
+        required double amount,
+        required DateTime date,
+        required String? memo,
+        required bool isRemember,
+        required bool isWaste,
+      }) {
+        ref.read(expenseViewModelProvider.notifier).updateExpense(
               expense.copyWith(
                 title: title,
                 amount: amount,
@@ -176,7 +185,7 @@ class ExpenseSection extends StatelessWidget {
                 isWaste: isWaste,
               ),
             );
-          },
-        );
-      }
+      },
+    );
+  }
 }

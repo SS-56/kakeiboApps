@@ -197,6 +197,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
                 isRemember: isRemember,
               ),
             );
+        ref.read(incomeViewModelProvider.notifier).saveData();
       },
     );
   }
