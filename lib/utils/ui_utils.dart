@@ -216,7 +216,7 @@ class _CardEditDialogState extends State<_CardEditDialog> {
     // 1) initStateで一回だけ初期化
     _titleCtrl = TextEditingController(text: widget.initialData.title);
     _amountCtrl = TextEditingController(
-      text: widget.initialData.amount.toString(),
+      text: widget.initialData.amount.toStringAsFixed(0),
     );
     _memoCtrl = TextEditingController(text: widget.initialData.memo ?? '');
 

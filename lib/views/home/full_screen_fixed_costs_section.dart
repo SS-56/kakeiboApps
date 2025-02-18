@@ -99,7 +99,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                           ),
                           trailing: isPaidUser
                               ? IconButton(
-                                  icon: const Icon(Icons.settings),
+                                  icon: const Icon(Icons.settings, color: Colors.black,),
                                   onPressed: () {
                                     _editFixed(context, ref, fixedCost);
                                   },

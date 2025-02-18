@@ -136,7 +136,7 @@ class ExpenseSection extends StatelessWidget {
                         : null,
                     trailing: isPaidUser
                         ? IconButton(
-                            icon: const Icon(Icons.settings),
+                            icon: const Icon(Icons.settings, color: Colors.black,),
                             onPressed: () =>
                                 _editExpense(context, ref, expense),
                           )
