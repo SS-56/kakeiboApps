@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pie_chart/pie_chart.dart';
+import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
 
@@ -8,16 +10,49 @@ class MyPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final size = MediaQuery.of(context).size;
+    final radius = size.shortestSide * 0.3; // 最短辺の30%
     final isPremium = ref.watch(subscriptionStatusProvider); // 課金状態を取得
+    final expenses = ref.watch(expenseViewModelProvider);
+    final totalSpent = expenses.fold<double>(0.0, (sum, e) => sum + e.amount);
+    final wasteTotal = expenses
+        .where((e) => e.isWaste)
+        .fold<double>(0.0, (sum, e) => sum + e.amount);
+    final nonWasteTotal = totalSpent - wasteTotal;
+
+    // 円グラフ用データ
+    final dataMap = {
+      "浪費": wasteTotal,
+      "非浪費": nonWasteTotal,
+    };
 
     return Scaffold(
       appBar: AppBar(
         title: Text("マイページ"),
       ),
-      body: Center(
-        child: isPremium == 'free'
-            ? _buildUpgradeMessage(context) // 無料プラン用メッセージを表示
-            : _buildSubscribedPlanCard(context, isPremium), // 課金プラン加入済みのCardを表示
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            children: [
+              isPremium == 'free'
+                  ? _buildUpgradeMessage(context) // 無料プラン用メッセージを表示
+                  : _buildSubscribedPlanCard(context, isPremium),
+              // 浪費合計・非浪費合計 表示
+              Text("使った金額合計: ${totalSpent.toStringAsFixed(0)}円"),
+              Text("浪費合計: ${wasteTotal.toStringAsFixed(0)}円"),
+              Text("浪費以外の金額: ${nonWasteTotal.toStringAsFixed(0)}円"),
+              SizedBox(height: 20,),
+        
+              // 円グラフ表示
+              PieChart(
+                dataMap: dataMap,
+                chartType: ChartType.ring,
+                chartRadius: radius,
+                // 他にも chartRadius, colorList, legendOptionsなどオプション多数
+              ),
+            ],
+          ), // 課金プラン加入済みのCardを表示
+        ),
       ),
     );
   }

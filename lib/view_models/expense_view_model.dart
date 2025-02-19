@@ -88,6 +88,18 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
     ];
     saveData();
   }
+
+  // 浪費合計
+  double get wasteTotal {
+    return state
+        .where((e) => e.isWaste)
+        .fold<double>(0.0, (sum, e) => sum + e.amount);
+  }
+
+  // 使った金額合計
+  double get totalSpent {
+    return state.fold<double>(0.0, (sum, e) => sum + e.amount);
+  }
 }
 
 final expenseViewModelProvider =
