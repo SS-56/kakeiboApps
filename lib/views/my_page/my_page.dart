@@ -42,12 +42,15 @@ class MyPage extends ConsumerWidget {
               Text("浪費合計: ${wasteTotal.toStringAsFixed(0)}円"),
               Text("浪費以外の金額: ${nonWasteTotal.toStringAsFixed(0)}円"),
               SizedBox(height: 20,),
-        
               // 円グラフ表示
               PieChart(
                 dataMap: dataMap,
                 chartType: ChartType.ring,
                 chartRadius: radius,
+                chartValuesOptions: ChartValuesOptions(
+                  showChartValuesInPercentage: true,
+                  decimalPlaces: 1,
+                ),
                 // 他にも chartRadius, colorList, legendOptionsなどオプション多数
               ),
             ],
