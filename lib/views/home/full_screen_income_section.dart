@@ -8,6 +8,8 @@ import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/widgets/input_area.dart';
 
+import '../../view_models/settings_view_model.dart';
+
 class FullScreenIncomeSection extends ConsumerWidget {
   const FullScreenIncomeSection({super.key});
 
@@ -16,10 +18,12 @@ class FullScreenIncomeSection extends ConsumerWidget {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     final incomeDate = ref.watch(incomeDateProvider);
+    final settings = ref.watch(settingsViewModelProvider);
 
     final isPaidUser = ref.watch(
-      subscriptionStatusProvider
-          .select((s) => s == SubscriptionStatusViewModel.basic || s == SubscriptionStatusViewModel.premium),
+      subscriptionStatusProvider.select((s) =>
+          s == SubscriptionStatusViewModel.basic ||
+          s == SubscriptionStatusViewModel.premium),
     );
     print('[DEBUG] FullScreenIncomeSection build => isPremium=$isPaidUser');
 
@@ -76,11 +80,20 @@ class FullScreenIncomeSection extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                '${income.date.year}/${income.date.month}/${income.date.day}', // 日付
-                                style:
-                                    TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
+                              if (settings.useCalendarForIncomeFixed)
+                                // カレンダーモード → YYYY/MM/DD
+                                Text(
+                                  '${income.date.year}/${income.date.month}/${income.date.day}',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                )
+                              else
+                                // 毎月◯日モード
+                                Text(
+                                  '毎月${income.date.day}日',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                ),
                               Text(
                                 income.title, // 種類
                                 style: TextStyle(fontSize: 16),
@@ -100,7 +113,8 @@ class FullScreenIncomeSection extends ConsumerWidget {
                               ? IconButton(
                                   icon:
                                       Icon(Icons.settings, color: Colors.black),
-                                  onPressed: () => _editIncome(context, ref, income),
+                                  onPressed: () =>
+                                      _editIncome(context, ref, income),
                                 )
                               : null,
                         ),
@@ -160,6 +174,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
                     DateTime.now(); // 日付をリセット
               }
             },
+            useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
           ),
         ],
       ),

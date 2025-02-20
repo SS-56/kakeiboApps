@@ -50,4 +50,35 @@ void clearMonthlyData({
         isWaste: false, id: '',
   );
   }
+
+  // handlers/monthly_data_handler.dart
+  void handleMonthlyRollover({
+    required List<FixedCost> fixedCosts,
+    // ... incomes, expenses
+    required DateTime newMonthStart,
+  }) {
+    // 1) 既存のクリア・リセットなど
+    // 2) 記憶フラグがONのカードだけ新しい月にコピー
+    for (final fc in fixedCosts) {
+      if (fc.isRemember) {
+        // dayOfMonthがnullならfc.date.dayを使う
+        final day = fc.dayOfMonth ?? fc.date.day;
+
+        final nextMonthDate = DateTime(
+          newMonthStart.year,
+          newMonthStart.month,
+          day,
+        );
+        // 既に翌月にあるかチェックして、なければ追加
+        // 例: ここで fixedCosts.add(...) ではなく
+        // ViewModelの addItem(...) 相当を呼ぶ
+        final newCard = fc.copyWith(
+          date: nextMonthDate,
+          // memoなど同じ
+        );
+        // 追加
+        // e.g. ref.read(fixedCostViewModelProvider.notifier).addItem(newCard)
+      }
+    }
+  }
 }

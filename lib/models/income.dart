@@ -9,6 +9,7 @@ class Income {
 
   String? memo;
   bool isRemember;
+  final int? dayOfMonth;
 
   Income({
     required this.id,
@@ -19,6 +20,7 @@ class Income {
 
     this.memo,
     this.isRemember = false,
+    this.dayOfMonth,
   });
 
   @override
@@ -56,6 +58,7 @@ class Income {
     DateTime? date,
     String? memo,
     bool? isRemember,
+    int? dayOfMonth,
   }) {
     return Income(
       id: id ?? this.id,
@@ -64,6 +67,7 @@ class Income {
       date: date ?? this.date,
       memo: memo ?? this.memo,
       isRemember: isRemember ?? this.isRemember,
+      dayOfMonth: dayOfMonth ?? this.dayOfMonth,
     );
   }
 }

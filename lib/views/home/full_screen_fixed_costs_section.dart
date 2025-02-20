@@ -8,6 +8,8 @@ import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/widgets/input_area.dart';
 
+import '../../view_models/settings_view_model.dart';
+
 class FullScreenFixedCostsSection extends ConsumerWidget {
   const FullScreenFixedCostsSection({super.key});
 
@@ -17,6 +19,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
     final amountController = TextEditingController();
     DateTime selectedDate = DateTime.now();
     final fixedCostsDate = ref.watch(fixedCostsDateProvider);
+    final settings = ref.watch(settingsViewModelProvider);
 
     final isPaidUser = ref.watch(
       subscriptionStatusProvider.select((s) =>
@@ -167,6 +170,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                     DateTime.now(); // 日付リセット
               }
             },
+            useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
           ),
         ],
       ),

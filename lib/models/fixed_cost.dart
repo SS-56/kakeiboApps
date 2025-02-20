@@ -9,6 +9,7 @@ class FixedCost {
 
   String? memo;
   bool isRemember;
+  final int? dayOfMonth;
 
   FixedCost({
     required this.id,
@@ -19,6 +20,7 @@ class FixedCost {
 
     this.memo,
     this.isRemember = false,
+    this.dayOfMonth,
   });
 
   @override

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,9 @@ class InputArea extends ConsumerWidget {
   final ValueChanged<DateTime> onDateChange;
   final VoidCallback onAdd;
 
+  // ★ ここが鍵: 課金プラン (毎月◯日) かどうか
+  final bool useDayOfMonthPicker;
+
   const InputArea({
     super.key,
     required this.titleController,
@@ -17,38 +21,62 @@ class InputArea extends ConsumerWidget {
     required this.selectedDate,
     required this.onDateChange,
     required this.onAdd,
+    this.useDayOfMonthPicker = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final startDay = ref.watch(startDayProvider); // 開始日をRiverpodで取得
+    final startDay = ref.watch(startDayProvider);
     final now = DateTime.now();
-    final startDate = DateTime(now.year, now.month, startDay); // 開始日を設定
+    final startDate = DateTime(now.year, now.month, startDay);
 
     return Container(
       color: Colors.grey[100],
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          // 日付選択
+          // ▼ 日付選択
           Expanded(
             flex: 3,
             child: GestureDetector(
               onTap: () async {
-                final pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: selectedDate,
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
-                );
-                if (pickedDate != null) {
-                  // 開始日より前の日付を選択した場合
-                  if (pickedDate.isBefore(startDate)) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('開始日より前の日付は入力できません')),
+                if (useDayOfMonthPicker) {
+                  // ★ 課金プラン: 「毎月◯日」Picker
+                  final pickedDay = await _pickDayOfMonthCupertino(context, selectedDate);
+                  if (pickedDay != null) {
+                    final newDate = DateTime(
+                      selectedDate.year,
+                      selectedDate.month,
+                      pickedDay,
+                      now.hour,
+                      now.minute,
+                      now.second,
+                      now.millisecond,
                     );
-                  } else {
-                    onDateChange(pickedDate); // 正しい日付を選択した場合はコールバックを呼び出し
+                    if (newDate.isBefore(startDate)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('開始日より前の日付は入力できません')),
+                      );
+                    } else {
+                      onDateChange(newDate);
+                    }
+                  }
+                } else {
+                  // ★ 無料プラン or 使った金額: showDatePicker
+                  final pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2100),
+                  );
+                  if (pickedDate != null) {
+                    if (pickedDate.isBefore(startDate)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('開始日より前の日付は入力できません')),
+                      );
+                    } else {
+                      onDateChange(pickedDate);
+                    }
                   }
                 }
               },
@@ -63,7 +91,9 @@ class InputArea extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '${selectedDate.year}/${selectedDate.month}/${selectedDate.day}',
+                      useDayOfMonthPicker
+                          ? '毎月${selectedDate.day}日'
+                          : '${selectedDate.year}/${selectedDate.month}/${selectedDate.day}',
                     ),
                     const Icon(Icons.calendar_today, size: 16),
                   ],
@@ -73,7 +103,7 @@ class InputArea extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
 
-          // 種類入力
+          // ▼ 種類入力
           Expanded(
             flex: 2,
             child: TextField(
@@ -83,12 +113,13 @@ class InputArea extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
 
-          // 金額入力
+          // ▼ 金額入力
           Expanded(
             flex: 2,
             child: TextField(
               controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: '金額'),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}$')),
@@ -97,22 +128,20 @@ class InputArea extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
 
-          // 追加ボタン
+          // ▼ 追加ボタン
           IconButton(
             icon: const Icon(Icons.add, color: Colors.blue),
             onPressed: () {
               final title = titleController.text.trim();
               final amount = double.tryParse(amountController.text.trim());
 
-              // 入力チェック: すべてのデータが入力されているか
               if (title.isEmpty || amount == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('全てのデータを入力してください')),
                 );
-                return; // 処理を中断
+                return;
               }
 
-              // 入力チェック: 日付が開始日より前か
               final updatedDate = DateTime(
                 selectedDate.year,
                 selectedDate.month,
@@ -122,20 +151,65 @@ class InputArea extends ConsumerWidget {
                 now.second,
                 now.millisecond,
               );
-
               if (updatedDate.isBefore(startDate)) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('開始日より前の日付は入力できません')),
                 );
-                return; // 処理を中断
+                return;
               }
 
-              // データが有効な場合はonAddを実行
               onAdd();
-              onDateChange(DateTime.now()); // 日付を現在の日付にリセット
+              onDateChange(DateTime.now());
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Future<int?> _pickDayOfMonthCupertino(BuildContext context, DateTime selectedDate) async {
+    // 例: selectedDate の月
+    final year = selectedDate.year;
+    final month = selectedDate.month;
+
+    // ★ 当月の日数を取得
+    final daysInMonth = DateUtils.getDaysInMonth(year, month);
+
+    int selectedIndex = 0;
+
+    return showCupertinoModalPopup<int>(
+      context: context,
+      builder: (context) => Container(
+        height: 300,
+        color: Colors.white,
+        child: Column(
+          children: [
+            // 上部にDoneボタン
+            Align(
+              alignment: Alignment.topRight,
+              child: TextButton(
+                onPressed: () {
+                  // ユーザーがDoneを押したとき → day = selectedIndex + 1
+                  Navigator.pop(context, selectedIndex + 1);
+                },
+                child: Text("完了"),
+              ),
+            ),
+            // CupertinoPicker本体
+            Expanded(
+              child: CupertinoPicker(
+                itemExtent: 32.0,
+                onSelectedItemChanged: (index) {
+                  selectedIndex = index;
+                },
+                children: List<Widget>.generate(
+                  daysInMonth,
+                      (index) => Center(child: Text("${index + 1}日")),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
