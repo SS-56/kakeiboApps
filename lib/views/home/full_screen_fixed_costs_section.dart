@@ -17,7 +17,6 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
-    DateTime selectedDate = DateTime.now();
     final fixedCostsDate = ref.watch(fixedCostsDateProvider);
     final settings = ref.watch(settingsViewModelProvider);
 
@@ -80,11 +79,20 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                '${fixedCost.date.year}/${fixedCost.date.month}/${fixedCost.date.day}', // 日付
-                                style:
-                                    TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
+                              if (settings.useCalendarForIncomeFixed)
+                              // カレンダーモード → YYYY/MM/DD
+                                Text(
+                                  '${fixedCost.date.year}/${fixedCost.date.month}/${fixedCost.date.day}',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                )
+                              else
+                              // 毎月◯日モード
+                                Text(
+                                  '毎月${fixedCost.date.day}日',
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                ),
                               Text(
                                 fixedCost.title,
                                 style: TextStyle(fontSize: 16),

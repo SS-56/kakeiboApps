@@ -25,7 +25,6 @@ class FullScreenIncomeSection extends ConsumerWidget {
           s == SubscriptionStatusViewModel.basic ||
           s == SubscriptionStatusViewModel.premium),
     );
-    print('[DEBUG] FullScreenIncomeSection build => isPremium=$isPaidUser');
 
     return Scaffold(
       appBar: AppBar(
