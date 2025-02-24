@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
+import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 
 class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
   final Ref ref;
@@ -54,6 +55,18 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
   // 固定費データを削除
   void removeItem(FixedCost fixedCost) {
     state = state.where((item) => item != fixedCost).toList();
+    // もし削除されたカードが "貯金" だったら、対応する "取り崩し" Cards を全部消す
+    if (fixedCost.title == "貯金") {
+      // 取り崩しカードを削除
+      // incomeViewModelProvider から stateを取得し、"取り崩し"タイトルのカードをまとめて削除
+      final incomes = ref.read(incomeViewModelProvider);
+      final removeTargets = incomes.where((inc) => inc.title == "取り崩し").toList();
+
+      // remove each
+      for (final inc in removeTargets) {
+        ref.read(incomeViewModelProvider.notifier).removeItem(inc);
+      }
+    }
     saveData();
   }
 
@@ -87,9 +100,36 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
     saveData();
   }
 
+  double get savingsTotal {
+    // 「titleが"貯金"」のカード合計
+    return state
+        .where((fc) => fc.title == "貯金")
+        .fold<double>(0.0, (sum, fc) => sum + fc.amount);
+  }
 }
 
 final fixedCostViewModelProvider =
 StateNotifierProvider<FixedCostViewModel, List<FixedCost>>((ref) {
   return FixedCostViewModel(ref);
 });
+
+final savingsGoalProvider = StateNotifierProvider<SavingsGoalViewModel, double>(
+      (ref) => SavingsGoalViewModel(),
+);
+
+class SavingsGoalViewModel extends StateNotifier<double> {
+  SavingsGoalViewModel() : super(0.0) {
+    loadGoal();
+  }
+
+  Future<void> loadGoal() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getDouble('savings_goal') ?? 0.0;
+  }
+
+  Future<void> setGoal(double newGoal) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('savings_goal', newGoal);
+    state = newGoal;
+  }
+}

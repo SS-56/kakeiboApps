@@ -19,7 +19,7 @@ class FixedCost {
     this.icon, // アイコンをオプションで受け取る
 
     this.memo,
-    this.isRemember = false,
+    this.isRemember = true,
     this.dayOfMonth,
   });
 

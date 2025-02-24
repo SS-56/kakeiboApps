@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pie_chart/pie_chart.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
@@ -22,6 +23,11 @@ class MyPage extends ConsumerWidget {
     final settings = ref.watch(settingsViewModelProvider);
     final isCalendarMode = settings.useCalendarForIncomeFixed;
     final subscriptionStatus = ref.watch(subscriptionStatusProvider);
+    final fixedCosts = ref.watch(fixedCostViewModelProvider);
+    final savingsTotal =
+        ref.watch(fixedCostViewModelProvider.notifier).savingsTotal;
+    final savingsGoal = ref.watch(savingsGoalProvider);
+    final goalController = TextEditingController();
 
     // 円グラフ用データ
     final dataMap = {
@@ -29,56 +35,119 @@ class MyPage extends ConsumerWidget {
       "非浪費": nonWasteTotal,
     };
 
-
     return Scaffold(
       appBar: AppBar(title: Text("マイページ")),
       body: subscriptionStatus == 'free'
-      // ★ 無料プランなら画面全体をCenterで固定
+          // ★ 無料プランなら画面全体をCenterで固定
           ? Center(
-        child: _buildUpgradeMessage(context),
-      )
+              child: _buildUpgradeMessage(context),
+            )
 
-      // ★ 課金プランなら従来のSingleChildScrollView
+          // ★ 課金プランなら従来のSingleChildScrollView
           : SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildSubscribedPlanCard(context, subscriptionStatus),
+              child: Column(
+                children: [
+                  _buildSubscribedPlanCard(context, subscriptionStatus),
+                  SizedBox(height: 16),
+                  Card(
+                    margin: EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      children: [
+                        // 浪費合計・円グラフなど
+                        Text("使った金額合計: ${totalSpent.toStringAsFixed(0)}円"),
+                        Text("浪費合計: ${wasteTotal.toStringAsFixed(0)}円"),
+                        Text("浪費以外の金額: ${nonWasteTotal.toStringAsFixed(0)}円"),
+                        SizedBox(height: 20),
+                        // 円グラフ
+                        PieChart(
+                          dataMap: dataMap,
+                          chartType: ChartType.ring,
+                          chartRadius: radius,
+                          chartValuesOptions: ChartValuesOptions(
+                            showChartValuesInPercentage: true,
+                            decimalPlaces: 1,
+                          ),
+                        ),
+                        SizedBox(
+                          height: 30,
+                        ),
+                      ],
+                    ),
+                  ),
 
-            // 浪費合計・円グラフなど
-            Text("使った金額合計: ${totalSpent.toStringAsFixed(0)}円"),
-            Text("浪費合計: ${wasteTotal.toStringAsFixed(0)}円"),
-            Text("浪費以外の金額: ${nonWasteTotal.toStringAsFixed(0)}円"),
-            SizedBox(height: 20),
-            // 円グラフ
-            PieChart(
-              dataMap: dataMap,
-              chartType: ChartType.ring,
-              chartRadius: radius,
-              chartValuesOptions: ChartValuesOptions(
-                showChartValuesInPercentage: true,
-                decimalPlaces: 1,
+                  Card(
+                    margin: EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      children: [
+                        SizedBox(height: 16),
+                        Text("ホーム画面の固定費ページで種類に「貯金」と\n入力すると貯金額が表示されます"),
+                        SizedBox(height: 20),
+                        Text("貯金合計: ${savingsTotal.toStringAsFixed(0)} 円"),
+                        Text("目標貯金額: ${savingsGoal.toStringAsFixed(0)} 円"),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 20.0),
+                              child: SizedBox(
+                                width: 200,
+                                child: TextField(
+                                  controller: goalController,
+                                  keyboardType: TextInputType.number,
+                                  decoration:
+                                      InputDecoration(labelText: "目標額を入力"),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 20.0),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  final newGoal =
+                                      double.tryParse(goalController.text) ?? 0;
+                                  ref
+                                      .read(savingsGoalProvider.notifier)
+                                      .setGoal(newGoal);
+                                },
+                                child: Text("保存"),
+                              ),
+                            )
+                          ],
+                        ),
+                        SizedBox(
+                          height: 16,
+                        ),
+                        // マイページで表示
+                        Text("貯金の合計: ${savingsTotal.toStringAsFixed(0)} 円"),
+                        SizedBox(height: 16,)
+                      ],
+                    ),
+                  ),
+                  Card(
+                    margin: EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      children: [
+                        // 日付入力方法
+                        ListTile(
+                          title: Text("日付入力方法 (総収入/固定費)"),
+                          subtitle: Text(isCalendarMode ? "カレンダー" : "毎月◯日"),
+                          trailing: Switch(
+                            value: isCalendarMode,
+                            onChanged: (val) {
+                              ref
+                                  .read(settingsViewModelProvider.notifier)
+                                  .setCalendarModeForIncomeFixed(val);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            // 日付入力方法
-            ListTile(
-              title: Text("日付入力方法 (総収入/固定費)"),
-              subtitle: Text(isCalendarMode ? "カレンダー" : "毎月◯日"),
-              trailing: Switch(
-                value: isCalendarMode,
-                onChanged: (val) {
-                  ref
-                      .read(settingsViewModelProvider.notifier)
-                      .setCalendarModeForIncomeFixed(val);
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
-
 
   // 無料プランの場合に表示するウィジェット
   Widget _buildUpgradeMessage(BuildContext context) {
