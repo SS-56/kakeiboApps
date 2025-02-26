@@ -32,7 +32,10 @@ class MyPage extends ConsumerWidget {
     final goalController = TextEditingController();
     final medals = ref.watch(medalViewModelProvider); // メダル一覧
     // 横3つ分だけ表示するなら
-    final recent3 = medals.reversed.take(3).toList().reversed.toList();
+    // 24個分だけ (末尾24件)
+    final last24 = medals.length > 24
+        ? medals.sublist(medals.length - 24)
+        : medals;
 
 
     // 円グラフ用データ
@@ -150,11 +153,16 @@ class MyPage extends ConsumerWidget {
                     ),
                   ),
                   Card(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: recent3.map((m) {
-                        return _buildMedalWidget(m);
-                      }).toList(),
+                    margin: const EdgeInsets.all(16),
+                    child: SizedBox(
+                      height: 400, // 高さ調整はお好みで
+                      child: GridView.count(
+                        crossAxisCount: 3, // 3列
+                        childAspectRatio: 1,
+                        // childAspectRatio: 幅:高さ の比率 (1なら正方形)
+
+                        children: last24.map((m) => buildMedalCell(m)).toList(),
+                      ),
                     ),
                   ),
                 ],
@@ -261,34 +269,47 @@ class MyPage extends ConsumerWidget {
       },
     );
   }
-  Widget _buildMedalWidget(Medal medal) {
-    String text;
+
+  /// グリッドセル1つぶんのウィジェット
+  Widget buildMedalCell(Medal medal) {
+    // メダル画像が無い場合の仮表示 → Icon + テキスト
+    // typeに応じて色やテキストを切り替え
+    IconData iconData;
     Color color;
-    switch (medal.type) {
+    String label;
+    switch(medal.type) {
       case MedalType.gold:
-        text = "金メダル";
-        color=Colors.amber[700]!;
+        iconData = Icons.emoji_events; // 🏆アイコン的な
+        color = Colors.amber[800]!;
+        label = "金";
         break;
       case MedalType.silver:
-        text = "銀メダル";
-        color=Colors.grey[400]!;
+        iconData = Icons.emoji_events;
+        color = Colors.grey[400]!;
+        label = "銀";
         break;
       case MedalType.bronze:
-        text = "銅メダル";
-        color=Colors.brown[400]!;
+        iconData = Icons.emoji_events;
+        color = Colors.brown;
+        label = "銅";
         break;
-      case MedalType.none:
       default:
-        text = "メダルなし";
-        color=Colors.grey;
+      // "none" or その他
+        iconData = Icons.emoji_events_outlined;
+        color = Colors.grey;
+        label = "なし";
         break;
     }
-    return Column(
-      children: [
-        Icon(Icons.emoji_events, color: color, size: 40),
-        Text(text, style: TextStyle(color:color)),
-      ],
+
+    return Container(
+      margin: const EdgeInsets.all(8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(iconData, color: color, size: 40),
+          Text(label, style: TextStyle(color: color)),
+        ],
+      ),
     );
   }
 }
-
