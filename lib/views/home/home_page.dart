@@ -99,7 +99,7 @@ class HomePage extends ConsumerWidget {
     // (4) AppBar
     String remainText;
     if (remainingBalance == 0) {
-      remainText = '0円 ※';
+      remainText = '0円';
     } else if (remainingBalance < 0) {
       remainText = '${remainingBalance.toStringAsFixed(0)}円';
     } else {
@@ -110,6 +110,23 @@ class HomePage extends ConsumerWidget {
     if (remainingBalance < 0) {
       barColor = Colors.black;
       txtColor = Colors.red;
+    } else {
+      // 残額がプラスの場合のみ "xx％" 判定
+      // ※ 何を基準に "20%" "10%" を計算するか要注意
+      //   - ここでは例として "totalIncome" を基準にする
+      final totalIncome = incomes.fold(0.0, (sum, inc) => sum + inc.amount);
+
+      if (totalIncome > 0) {
+        final ratio = remainingBalance / totalIncome;
+        // ratio < 0.1 => 10％未満 => 薄いピンク
+        // ratio < 0.2 => 20％未満 => 薄い黄色
+        if (ratio < 0.1) {
+          barColor = Colors.pink[100]!;   // 薄いピンク
+        } else if (ratio < 0.2) {
+          barColor = Colors.yellow[100]!; // 薄い黄色
+        }
+        // それ以外 => 何もしない(白)
+      }
     }
 
     return Scaffold(

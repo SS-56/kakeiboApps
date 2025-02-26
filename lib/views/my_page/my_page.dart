@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pie_chart/pie_chart.dart';
+import 'package:yosan_de_kakeibo/models/medal.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/medal_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
@@ -28,6 +30,10 @@ class MyPage extends ConsumerWidget {
         ref.watch(fixedCostViewModelProvider.notifier).savingsTotal;
     final savingsGoal = ref.watch(savingsGoalProvider);
     final goalController = TextEditingController();
+    final medals = ref.watch(medalViewModelProvider); // メダル一覧
+    // 横3つ分だけ表示するなら
+    final recent3 = medals.reversed.take(3).toList().reversed.toList();
+
 
     // 円グラフ用データ
     final dataMap = {
@@ -143,6 +149,14 @@ class MyPage extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  Card(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: recent3.map((m) {
+                        return _buildMedalWidget(m);
+                      }).toList(),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -247,4 +261,34 @@ class MyPage extends ConsumerWidget {
       },
     );
   }
+  Widget _buildMedalWidget(Medal medal) {
+    String text;
+    Color color;
+    switch (medal.type) {
+      case MedalType.gold:
+        text = "金メダル";
+        color=Colors.amber[700]!;
+        break;
+      case MedalType.silver:
+        text = "銀メダル";
+        color=Colors.grey[400]!;
+        break;
+      case MedalType.bronze:
+        text = "銅メダル";
+        color=Colors.brown[400]!;
+        break;
+      case MedalType.none:
+      default:
+        text = "メダルなし";
+        color=Colors.grey;
+        break;
+    }
+    return Column(
+      children: [
+        Icon(Icons.emoji_events, color: color, size: 40),
+        Text(text, style: TextStyle(color:color)),
+      ],
+    );
+  }
 }
+
