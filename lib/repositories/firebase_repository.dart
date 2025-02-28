@@ -18,7 +18,9 @@ class FirebaseRepository {
     while (retryCount < maxRetries) {
       try {
         // Firestoreから課金プランを取得
-        return await _firebaseService.getDocument('subscriptions', userId).then((data) {
+        return await _firebaseService
+            .getDocument('subscriptions', userId)
+            .then((data) {
           return data?['plan'] as String?;
         });
       } catch (e) {
@@ -33,35 +35,81 @@ class FirebaseRepository {
     }
     return null; // 到達することはないが、安全のため
   }
+
+  /// ====== 既存のメソッド ======
   Future<void> saveExpense(Expense expense) =>
       _firebaseService.saveExpense(expense);
 
-  Future<void> saveIncome(Income income) =>
-      _firebaseService.saveIncome(income);
-  // ✅ **収入をFirebaseに保存**
+  Future<void> saveIncome(Income income) => _firebaseService.saveIncome(income);
+
+  Future<void> saveFixedCost(FixedCost fixedCost) =>
+      _firebaseService.saveFixedCost(fixedCost);
+
   Future<void> saveIncomeCard(Income income) async {
-    await _firestore.collection('saved_income').doc(income.id).set(income.toJson());
+    await _firestore
+        .collection('saved_income')
+        .doc(income.id)
+        .set(income.toJson());
   }
 
-  // ✅ **保存された収入を取得**
   Future<List<Income>> getSavedIncomeCards() async {
     final snapshot = await _firestore.collection('saved_income').get();
     return snapshot.docs.map((doc) => Income.fromJson(doc.data())).toList();
   }
 
-  // ✅ **固定費をFirebaseに保存**
   Future<void> saveFixedCostCard(FixedCost cost) async {
-    await _firestore.collection('saved_fixed_costs').doc(cost.id).set(cost.toJson());
+    await _firestore
+        .collection('saved_fixed_costs')
+        .doc(cost.id)
+        .set(cost.toJson());
   }
 
-  // ✅ **保存された固定費を取得**
   Future<List<FixedCost>> getSavedFixedCostCards() async {
     final snapshot = await _firestore.collection('saved_fixed_costs').get();
     return snapshot.docs.map((doc) => FixedCost.fromJson(doc.data())).toList();
   }
 
-  Future<void> saveFixedCost(FixedCost fixedCost) =>
-      _firebaseService.saveFixedCost(fixedCost);
+  /// ====== ここから新規追加: 月次まとめ保存 ======
+  Future<void> saveMonthlyData({
+    required String uid,
+    required String yyyyMM,
+    required List<Income> incomes,
+    required List<FixedCost> fixedCosts,
+    required List<Expense> expenses,
+  }) async {
+    final docRef = _firestore
+        .collection('user')
+        .doc(uid)
+        .collection('monthly_data')
+        .doc(yyyyMM);
+
+    final data = {
+      'incomes': incomes.map((e) => e.toJson()).toList(),
+      'fixedCosts': fixedCosts.map((e) => e.toJson()).toList(),
+      'expenses': expenses.map((e) => e.toJson()).toList(),
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+    await docRef.set(data);
+  }
+
+  Future<Map<String, dynamic>?> getMonthlyData({
+    required String uid,
+    required String yyyyMM,
+  }) async {
+    final docSnap = await _firestore
+        .collection('user')
+        .doc(uid)
+        .collection('monthly_data')
+        .doc(yyyyMM)
+        .get();
+    if (!docSnap.exists) return null;
+    return docSnap.data();
+  }
+
+  Future<void> pruneOldMonthlyData({required String uid}) async {
+    // 例: monthly_dataをtimestamp昇順で取得し、25件以上なら古い分を削除 etc.
+    // ...
+  }
 }
 
 final firebaseRepositoryProvider = Provider<FirebaseRepository>((ref) {

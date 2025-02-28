@@ -1,7 +1,10 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
 import 'package:yosan_de_kakeibo/models/income.dart';
+import 'package:yosan_de_kakeibo/repositories/firebase_repository.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
@@ -10,50 +13,63 @@ import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/medal_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 
-/// 既存のクリア処理
+// monthly_data_handler.dart
+
 void clearMonthlyData({
   required List<Income> incomes,
   required List<FixedCost> fixedCosts,
   required List<Expense> expenses,
 }) {
-  // 収入のリセット
+  // ▼ 収入リセット
   for (int i = 0; i < incomes.length; i++) {
     if (incomes[i].isRemember) {
-      incomes[i] = incomes[i].copyWith(date: DateTime.now());
-      // 記憶フラグON => スキップ
+      // 記憶フラグON => そのまま保持
+      // 必要なら、日付だけ更新 or 何もしない
+      incomes[i] = incomes[i].copyWith(
+          date: DateTime.now(),
+          amount: incomes[i].amount,
+      );
       continue;
+    } else {
+      // 記憶フラグOFF => リセット
+      incomes[i] = Income(
+        id: incomes[i].id,
+        title: incomes[i].title,
+        amount: 0,
+        date: DateTime.now(),
+        memo: '',
+        isRemember: false,
+      );
     }
-    // それ以外 => amount=0, メモ等リセット
-    incomes[i] = Income(
-      id: '', // id再生成 or そのままでもOK
-      title: incomes[i].title,
-      amount: 0,
-      date: DateTime.now(),
-      memo: '',
-      isRemember: false,
-    );
   }
 
-  // 固定費のリセット
+  // ▼ 固定費
   for (int i = 0; i < fixedCosts.length; i++) {
     if (fixedCosts[i].isRemember) {
-      fixedCosts[i] = fixedCosts[i].copyWith(date: DateTime.now());
+      // 記憶ON => そのまま
+      fixedCosts[i] = fixedCosts[i].copyWith(
+          date: DateTime.now(),
+          amount: fixedCosts[i].amount,
+      );
       continue;
+    } else {
+      // リセット
+      fixedCosts[i] = FixedCost(
+        id: fixedCosts[i].id,
+        title: fixedCosts[i].title,
+        amount: 0,
+        date: DateTime.now(),
+        memo: '',
+        isRemember: false,
+      );
     }
-    fixedCosts[i] = FixedCost(
-      id: '',
-      title: fixedCosts[i].title,
-      amount: 0,
-      date: DateTime.now(),
-      memo: '',
-      isRemember: false,
-    );
   }
 
-  // 支出のリセット
+  // ▼ 支出
   for (int i = 0; i < expenses.length; i++) {
+    // 使った金額は全リセット
     expenses[i] = Expense(
-      id: '',
+      id: expenses[i].id,
       title: expenses[i].title,
       amount: 0,
       date: DateTime.now(),
@@ -67,33 +83,30 @@ void clearMonthlyData({
 /// - refから現在の収支を取得 -> どの程度貯金を使ったか判定 -> medalViewModelでメダル付与
 /// - その後 clearMonthlyDataでデータをリセット
 Future<void> finalizeMonth(WidgetRef ref) async {
-  // 1) 現在のデータ一覧取得
+  // 1) 現在のリスト取得
   final incomes = ref.read(incomeViewModelProvider);
   final fixedCosts = ref.read(fixedCostViewModelProvider);
   final expenses = ref.read(expenseViewModelProvider);
 
   // 2) 収支計算
-  final totalIncome = incomes.fold<double>(0.0, (sum, i) => sum + i.amount);
-  final totalFixed  = fixedCosts.fold<double>(0.0, (sum, f) => sum + f.amount);
-  final totalSpent  = expenses.fold<double>(0.0, (sum, e) => sum + e.amount);
+  final totalIncome = incomes.fold(0.0, (sum, i) => sum + i.amount);
+  final totalFixed  = fixedCosts.fold(0.0, (sum, f) => sum + f.amount);
+  final totalSpent  = expenses.fold(0.0, (sum, e) => sum + e.amount);
   final remainingBalance = totalIncome - totalFixed - totalSpent;
 
-  // 3) 課金状態
-  final subscriptionStatus = ref.read(subscriptionStatusProvider);
-  final isPaidUser =
-  (subscriptionStatus == 'basic' || subscriptionStatus == 'premium');
+  // 3) oldSaving: 先月開始時に保存してあった値
+  final sp = await SharedPreferences.getInstance();
+  final oldSaving = sp.getDouble("start_of_month_saving") ?? 0;
 
-  // 4) 貯金のBefore/Afterを求める (例: 全固定費中「title==貯金」のものが対象)
-  //    ここでは "oldSaving" は「先月開始時の貯金額」を想定 -> SharedPrefs等に保存しておく
-  //    "newSaving" は今の金額
-  double oldSaving = 0; // TODO: 先月開始時に記録していた値を読み込む
-  final savingCard = fixedCosts.firstWhere(
-        (fc) => fc.title == '貯金',
-    orElse: () => FixedCost(id:'', title:'', amount:0, date:DateTime.now(),memo:'',isRemember:false),
-  );
-  final newSaving = savingCard.amount; // 今の貯金
+  // 4) newSaving => 今の貯金
+  final savingCard = fixedCosts.firstWhereOrNull((fc) => fc.title=="貯金");
+  final newSaving = savingCard?.amount ?? 0;
 
-  // 5) メダル判定 => checkAndAwardMedal
+  // 5) 課金状態
+  final subscription = ref.read(subscriptionStatusProvider);
+  final isPaidUser = (subscription=='basic' || subscription=='premium');
+
+  // 6) メダル判定 => クリア前に
   await ref.read(medalViewModelProvider.notifier).checkAndAwardMedal(
     totalIncome: totalIncome,
     remainingBalance: remainingBalance,
@@ -102,17 +115,32 @@ Future<void> finalizeMonth(WidgetRef ref) async {
     isPaidUser: isPaidUser,
   );
 
-  // 6) 月次リセット (既存関数)
+  // 6) Firebase保存 (課金ユーザーのみ)
+  if (isPaidUser) {
+    // uid 例: Apple/Googleサインイン後
+    final uid = sp.getString('firebase_uid') ?? 'dummy';
+    final now = DateTime.now();
+    final yyyyMM = '${now.year}${now.month.toString().padLeft(2,'0')}';
+    final repo = ref.read(firebaseRepositoryProvider);
+
+    await repo.saveMonthlyData(
+      uid: uid,
+      yyyyMM: yyyyMM,
+      incomes: incomes,
+      fixedCosts: fixedCosts,
+      expenses: expenses,
+    );
+    // await repo.pruneOldMonthlyData(uid: uid); // 24か月より古いの削除
+  }
+
+  // 7) クリア (isRemember でスキップ)
   clearMonthlyData(
     incomes: incomes,
     fixedCosts: fixedCosts,
     expenses: expenses,
   );
 
-  // 7) 今の newSaving を次の月の oldSaving に使う => 保管しておく
-  //    ex: SharedPreferencesなど
-  // final prefs = await SharedPreferences.getInstance();
-  // await prefs.setDouble('start_of_month_saving', newSaving);
-
-  // 終了
+  // 8) newSaving を次回 oldSaving に
+  //   (本来= 次の月初に読み込むが簡易的にここで保存)
+  await sp.setDouble('start_of_month_saving', newSaving);
 }
