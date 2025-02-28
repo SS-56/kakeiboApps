@@ -8,11 +8,11 @@ import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
+import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/home/expense_section.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
 import 'package:yosan_de_kakeibo/utils/ui_utils.dart'; // showMyDatePicker をimport
-
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -22,21 +22,31 @@ class SettingsPage extends ConsumerWidget {
     final startDay = ref.watch(startDayProvider);
     final customCategories = ref.watch(customCategoryProvider);
     final types = ref.watch(typeProvider);
-    final isPremium = ref.watch(subscriptionStatusProvider);
+
+    // 課金状態を取得
+    final subscriptionStatus = ref.watch(subscriptionStatusProvider);
+    final isPaidUser = (subscriptionStatus == 'basic' || subscriptionStatus == 'premium');
+
+    // ★ 修正箇所: 日付入力方法用のbool
+    final isCalendarMode = ref.watch(settingsViewModelProvider).useCalendarForIncomeFixed;
+    // ★ 修正箇所: 水道代2ヶ月用のbool
+    final isBimonthly = ref.watch(settingsViewModelProvider).isWaterBillBimonthly;
+
     final sortOrder = ref.watch(sortOrderProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("設定"),
+        title: const Text("設定"),
       ),
       body: ListTileTheme(
-        contentPadding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0), // 統一された高さ調整
-        dense: false, // 必要に応じてtrueにするとコンパクトな高さ
+        contentPadding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+        dense: false,
         child: ListView(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           children: [
+            // 家計簿開始日
             ListTile(
-              title: Text("家計簿の管理を開始する日にち"),
+              title: const Text("家計簿の管理を開始する日にち"),
               subtitle: GestureDetector(
                 onTap: () => _selectStartDay(context, ref),
                 child: Column(
@@ -46,74 +56,106 @@ class SettingsPage extends ConsumerWidget {
                         Padding(
                           padding: const EdgeInsets.only(left: 12.0),
                           child: Text(
-                            "現在: ${ref.watch(startDayProvider)}日",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            "現在: $startDay日",
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        SizedBox(width: 16),
-                        Icon(Icons.calendar_today, color: Colors.blue),
+                        const SizedBox(width: 16),
+                        const Icon(Icons.calendar_today, color: Colors.blue),
                       ],
                     ),
                     Padding(
                       padding: const EdgeInsets.only(left: 12.0, top: 8.0),
                       child: Text(
                         ref.watch(budgetPeriodProvider).isNotEmpty
-                            ? ref.watch(budgetPeriodProvider) // メッセージがある場合は表示
-                            : "", // 空の場合は何も表示しない
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            ? ref.watch(budgetPeriodProvider)
+                            : "",
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            SizedBox(height: 8),
-            Divider(),
-            // 通知設定
-            ListTile(
-              title: Text("通知設定"),
-              subtitle: Text(
-                ref.watch(notificationSettingProvider) ? "オン" : "オフ",
-                style: TextStyle(fontSize: 14),
-              ),
-              trailing: Switch(
-                value: ref.watch(notificationSettingProvider),
-                onChanged: (value) {
-                  ref.read(notificationSettingProvider.notifier).toggleNotification(value);
-                  print("通知設定が変更されました: $value");
-                },
-              ),
-            ),
-            Divider(),
+            const SizedBox(height: 8),
+            const Divider(),
 
-// データ同期設定
+            // ★ 修正箇所: 日付入力方法 (総収入/固定費)
+            // SwitchListTileを使わず、ListTile + Switch で全体タップも拾う
             ListTile(
-              title: Text("データ同期 (プレミアム)"),
+              onTap: () {
+                // ListTile全体をタップしたとき
+                if (!isPaidUser) {
+                  _showUpgradeDialog(context);
+                  return;
+                }
+                // 課金ユーザならトグル
+                ref.read(settingsViewModelProvider.notifier)
+                    .setCalendarModeForIncomeFixed(!isCalendarMode);
+              },
+              title: Text(
+                "日付入力方法 (総収入/固定費)",
+                style: TextStyle(color: isPaidUser ? Colors.black : Colors.grey),
+              ),
               subtitle: Text(
-                ref.watch(dataBackupProvider)
-                    ? "オン - データは同期されています"
-                    : "オフ - データ同期を有効にしてください",
-                style: TextStyle(fontSize: 14),
+                isCalendarMode ? "カレンダー" : "毎月◯日",
+                style: TextStyle(color: isPaidUser ? Colors.black : Colors.grey),
               ),
               trailing: Switch(
-                value: ref.watch(dataBackupProvider),
-                onChanged: (value) {
-                  final isPremium = ref.watch(subscriptionStatusProvider) == 'basic';
-                  if (isPremium) {
-                    ref.read(dataBackupProvider.notifier).toggleBackup(value);
-                    print("データ同期設定が変更されました: $value");
-                  } else {
-                    _showUpgradeDialog(context); // プレミアムへの誘導ダイアログ
+                value: isCalendarMode,
+                onChanged: (bool val) {
+                  if (!isPaidUser) {
+                    _showUpgradeDialog(context);
+                    return;
                   }
+                  ref.read(settingsViewModelProvider.notifier).setCalendarModeForIncomeFixed(val);
                 },
+                // ★ 他と同様に紫へ
+                activeColor: Colors.blue,
               ),
             ),
-            Divider(),
+            const Divider(),
+
+            // ★ 修正箇所: 水道代2ヶ月に1度
+            ListTile(
+              onTap: () {
+                if (!isPaidUser) {
+                  _showUpgradeDialog(context);
+                  return;
+                }
+                // 課金ユーザならトグル
+                ref.read(settingsViewModelProvider.notifier)
+                    .setWaterBillBimonthly(!isBimonthly);
+              },
+              title: Text(
+                "水道代を2ヶ月に1度追加する",
+                style: TextStyle(color: isPaidUser ? Colors.black : Colors.grey),
+              ),
+              subtitle: Text(
+                "ONにすると、固定費に「水道代」と入力したら2ヶ月ごとに自動追加します",
+                style: TextStyle(color: isPaidUser ? Colors.black : Colors.grey),
+              ),
+              trailing: Switch(
+                value: isBimonthly,
+                onChanged: (bool val) {
+                  if (!isPaidUser) {
+                    _showUpgradeDialog(context);
+                    return;
+                  }
+                  ref.read(settingsViewModelProvider.notifier).setWaterBillBimonthly(val);
+                },
+                // ★ 他と同様に紫へ
+                activeColor: Colors.blue,
+              ),
+            ),
+            const Divider(),
             ListTile(
               title: Text(
                 "種類のカテゴリーを増やす",
                 style: TextStyle(
-                  color: isPremium == 'basec' ? Colors.black : Colors.grey,
+                  color: (subscriptionStatus == 'basic' || subscriptionStatus == 'premium')
+                      ? Colors.black
+                      : Colors.grey,
                 ),
               ),
               subtitle: Padding(
@@ -123,24 +165,28 @@ class SettingsPage extends ConsumerWidget {
                       ? "カスタムカテゴリーはありません"
                       : "現在のカテゴリー: ${customCategories.join(', ')}",
                   style: TextStyle(
-                    color: isPremium == 'basic' ? Colors.black : Colors.grey,
+                    color: (subscriptionStatus == 'basic' || subscriptionStatus == 'premium')
+                        ? Colors.black
+                        : Colors.grey,
                   ),
                 ),
               ),
               onTap: () {
-                if (isPremium == 'basic') {
+                if (subscriptionStatus == 'basic' || subscriptionStatus == 'premium') {
                   _addCategory(context, ref);
                 } else {
                   _showUpgradeDialog(context);
                 }
               },
             ),
-            Divider(),
+            const Divider(),
             ListTile(
               title: Text(
                 "種類を追加",
                 style: TextStyle(
-                  color: isPremium == 'basic' ? Colors.black : Colors.grey,
+                  color: (subscriptionStatus == 'basic' || subscriptionStatus == 'premium')
+                      ? Colors.black
+                      : Colors.grey,
                 ),
               ),
               subtitle: types.isEmpty
@@ -148,7 +194,11 @@ class SettingsPage extends ConsumerWidget {
                 padding: const EdgeInsets.only(left: 8.0),
                 child: Text(
                   "追加された種類はありません",
-                  style: TextStyle(color: isPremium == 'basic' ? Colors.black : Colors.grey),
+                  style: TextStyle(
+                    color: (subscriptionStatus == 'basic' || subscriptionStatus == 'premium')
+                        ? Colors.black
+                        : Colors.grey,
+                  ),
                 ),
               )
                   : Padding(
@@ -160,12 +210,18 @@ class SettingsPage extends ConsumerWidget {
                       children: [
                         Icon(
                           type['icon'],
-                          color: isPremium == 'basic' ? Colors.black : Colors.grey,
+                          color: (subscriptionStatus == 'basic' || subscriptionStatus == 'premium')
+                              ? Colors.black
+                              : Colors.grey,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
                           type['name'],
-                          style: TextStyle(color: isPremium == 'basic' ? Colors.black : Colors.grey),
+                          style: TextStyle(
+                            color: (subscriptionStatus == 'basic' || subscriptionStatus == 'premium')
+                                ? Colors.black
+                                : Colors.grey,
+                          ),
                         ),
                       ],
                     );
@@ -173,16 +229,16 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
               onTap: () {
-                if (isPremium == 'basic') {
+                if (subscriptionStatus == 'basic' || subscriptionStatus == 'premium') {
                   _addType(context, ref);
                 } else {
                   _showUpgradeDialog(context);
                 }
               },
             ),
-            Divider(),
+            const Divider(),
             ListTile(
-              title: Text("金額データの並び順"),
+              title: const Text("金額データの並び順"),
               subtitle: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
@@ -190,59 +246,60 @@ class SettingsPage extends ConsumerWidget {
                     children: [
                       Radio<bool>(
                         value: true,
-                        groupValue: ref.watch(sortOrderProvider),
+                        groupValue: sortOrder,
                         onChanged: (value) {
                           ref.read(sortOrderProvider.notifier).updateSortOrder(value!);
                           ref.read(incomeViewModelProvider.notifier).sortItems(value);
                           ref.read(fixedCostViewModelProvider.notifier).sortItems(value);
                         },
                       ),
-                      Text("下に追加"),
+                      const Text("下に追加"),
                     ],
                   ),
-                  SizedBox(width: 16), // 隙間を空ける
+                  const SizedBox(width: 16),
                   Row(
                     children: [
                       Radio<bool>(
                         value: false,
-                        groupValue: ref.watch(sortOrderProvider),
+                        groupValue: sortOrder,
                         onChanged: (value) {
                           ref.read(sortOrderProvider.notifier).updateSortOrder(value!);
                           ref.read(incomeViewModelProvider.notifier).sortItems(value);
                           ref.read(fixedCostViewModelProvider.notifier).sortItems(value);
                         },
                       ),
-                      Text("上に追加"),
+                      const Text("上に追加"),
                     ],
                   ),
                 ],
               ),
             ),
-            Divider(),
+            const Divider(),
             ListTile(
-              title: Text("全データ消去"),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(left: 8.0),
+              title: const Text("全データ消去"),
+              subtitle: const Padding(
+                padding: EdgeInsets.only(left: 8.0),
                 child: Text("すべてのデータを消去して初期状態に戻します。"),
               ),
               trailing: GestureDetector(
                 onTap: () {
-                  int newDay = 1; // 必要に応じて値を変更
-                  _confirmResetData(context, ref, newDay); // アイコンタップ時に処理を実行
+                  int newDay = 1;
+                  _confirmResetData(context, ref, newDay);
                 },
-                child: Icon(
+                child: const Icon(
                   Icons.delete,
                   color: Colors.red,
                 ),
               ),
             ),
-            Divider(),
+            const Divider(),
           ],
         ),
       ),
     );
   }
-  /// 通常のshowDatePickerをラップした関数
+
+  /// showDatePicker をラップした関数
   Future<DateTime?> showMyDatePicker({
     required BuildContext context,
     required DateTime initialDate,
@@ -255,25 +312,15 @@ class SettingsPage extends ConsumerWidget {
       firstDate: firstDate,
       lastDate: lastDate,
     );
-    return picked; // null ならキャンセル。DateTimeなら選択日付。
-  }
-
-  void _confirmResetData(BuildContext context, WidgetRef ref, int newDay) {
-    // 最初の確認を表示
-    _showFirstConfirmation(context, ref, newDay);
+    return picked;
   }
 
   void _selectStartDay(BuildContext context, WidgetRef ref) async {
     final now = DateTime.now();
-    // 現在の開始日
     final selectedDay = ref.read(startDayProvider);
-
-    // 既定のinitialDate (「現在の開始日」を使う)
     final initialDate = DateTime(now.year, now.month, selectedDay);
-
-    // カレンダー選択の範囲を簡単に当月に限定する例
     final firstDate = DateTime(now.year, now.month, 1);
-    final lastDay = DateTime(now.year, now.month + 1, 0).day; // 月末日
+    final lastDay = DateTime(now.year, now.month + 1, 0).day;
     final lastDate = DateTime(now.year, now.month, lastDay);
 
     final pickedDate = await showMyDatePicker(
@@ -284,9 +331,7 @@ class SettingsPage extends ConsumerWidget {
     );
 
     if (pickedDate != null) {
-      // 新しい日が選ばれた
       if (pickedDate.day != selectedDay) {
-        // 開始日が変わるなら確認ダイアログ
         _updateStartDay(ref, pickedDate.day);
       } else {
         print("日付に変更はありません");
@@ -296,84 +341,52 @@ class SettingsPage extends ConsumerWidget {
     }
   }
 
-  /// 開始日を変更する確認ダイアログ例
-  void _confirmStartDateChange(
-      BuildContext context,
-      WidgetRef ref,
-      DateTime newDate,
-      ) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("開始日を変更してもいいですか？"),
-        content: Text("${newDate.month}月${newDate.day}日に変更します。"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("キャンセル"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // 開始日を更新
-              ref.read(startDayProvider.notifier).state = newDate.day;
-              print("開始日を${newDate.day}日に変更しました");
-            },
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _updateStartDay(WidgetRef ref, int newDay) {
-    ref.read(startDayProvider.notifier).setStartDay(newDay); // 状態を更新
+    ref.read(startDayProvider.notifier).setStartDay(newDay);
     print("開始日が更新されました: $newDay 日");
 
-    // 管理期間メッセージの更新
     final now = DateTime.now();
     final startDate = DateTime(now.year, now.month, newDay);
     final endDate = calculateEndDate(startDate);
 
-    // データのフィルタリングと管理期間の更新
     ref.read(expenseViewModelProvider.notifier).filterByDateRange(startDate, endDate);
     ref.read(fixedCostViewModelProvider.notifier).filterByDateRange(startDate, endDate);
     ref.read(incomeViewModelProvider.notifier).filterByDateRange(startDate, endDate);
 
-    String budgetPeriodMessage =
+    final budgetPeriodMessage =
         "${startDate.month}月${startDate.day}日から${endDate.month}月${endDate.day}日までを管理します";
     ref.read(budgetPeriodProvider.notifier).state = budgetPeriodMessage;
 
     print("管理期間メッセージ: $budgetPeriodMessage");
   }
 
-  void _showFirstConfirmation(BuildContext context, WidgetRef ref, int newDay) {
+  void _confirmResetData(BuildContext context, WidgetRef ref, int newDay) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("確認"),
+          title: const Text("確認"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
+            children: const [
               Text(
-                "全データを消去します。\nよろしいですか？", // \nで改行を挿入
+                "全データを消去します。\nよろしいですか？",
                 textAlign: TextAlign.start,
                 style: TextStyle(fontSize: 16),
               ),
             ],
-          ),// 必要に応じて中央揃え),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("キャンセル"),
+              child: const Text("キャンセル"),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                _showSecondConfirmation(context, ref, newDay); // 次の確認ステップへ
+                _showSecondConfirmation(context, ref, newDay);
               },
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -386,21 +399,21 @@ class SettingsPage extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("最終確認"),
-          content: Text("本当に全データを消去してもよろしいですか？"),
+          title: const Text("最終確認"),
+          content: const Text("本当に全データを消去してもよろしいですか？"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("キャンセル"),
+              child: const Text("キャンセル"),
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // ダイアログを閉じる
-                _resetData(ref); // データを消去
-                _updateStartDay(ref, newDay); // 日付を更新
+                Navigator.pop(context);
+                _resetData(ref);
+                _updateStartDay(ref, newDay);
                 print("データがリセットされ、開始日が更新されました: $newDay");
               },
-              child: Text("OK"),
+              child: const Text("OK"),
             ),
           ],
         );
@@ -410,11 +423,8 @@ class SettingsPage extends ConsumerWidget {
 
   void _resetData(WidgetRef ref) async {
     final prefs = await SharedPreferences.getInstance();
-
-    // SharedPreferencesのすべてのデータを削除
     await prefs.clear();
 
-    // 状態のリセット
     ref.read(startDayProvider.notifier).state = 1;
     ref.read(customCategoryProvider.notifier).state = [];
     ref.read(typeProvider.notifier).state = [];
@@ -423,22 +433,21 @@ class SettingsPage extends ConsumerWidget {
     ref.read(fixedCostViewModelProvider.notifier).state = [];
     ref.read(expenseViewModelProvider.notifier).state = [];
     ref.read(budgetPeriodProvider.notifier).state = "";
+    ref.read(settingsViewModelProvider.notifier).resetToDefaultSettings();
 
-    // 課金状態を初期化 ('free'にリセット)
     ref.read(subscriptionStatusProvider.notifier).state = 'free';
-    await prefs.setString('subscription_plan', 'free'); // 永続データもリセット
+    await prefs.setString('subscription_plan', 'free');
 
-    // セクションの展開状態をリセット
     ref.read(incomeExpandProvider.notifier).state = false;
     ref.read(fixedCostsExpandProvider.notifier).state = false;
     ref.read(expensesExpandProvider.notifier).state = false;
   }
 
   void _addCategory(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(subscriptionStatusProvider); // 課金状態を取得
+    final isPremium = ref.watch(subscriptionStatusProvider);
     print("Current isPremium value: $isPremium");
 
-    if (isPremium != 'basic') {
+    if (isPremium != 'basic' && isPremium != 'premium') {
       // 無料ユーザーは課金プラン加入ページに遷移
       Navigator.push(
         context,
@@ -447,21 +456,20 @@ class SettingsPage extends ConsumerWidget {
       return;
     }
 
-    // ベーシックユーザーは現在のロジックを実行
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: Text("カテゴリーを追加"),
+          title: const Text("カテゴリーを追加"),
           content: TextField(
             controller: controller,
-            decoration: InputDecoration(hintText: "カテゴリー名を入力"),
+            decoration: const InputDecoration(hintText: "カテゴリー名を入力"),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("キャンセル"),
+              child: const Text("キャンセル"),
             ),
             TextButton(
               onPressed: () {
@@ -472,7 +480,7 @@ class SettingsPage extends ConsumerWidget {
                 }
                 Navigator.pop(context);
               },
-              child: Text("追加"),
+              child: const Text("追加"),
             ),
           ],
         );
@@ -481,11 +489,10 @@ class SettingsPage extends ConsumerWidget {
   }
 
   void _addType(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(subscriptionStatusProvider); // 課金状態を取得
+    final isPremium = ref.watch(subscriptionStatusProvider);
     print("Current isPremium value: $isPremium");
 
-    if (isPremium != 'basic') {
-      // 無料ユーザーは課金プラン加入ページに遷移
+    if (isPremium != 'basic' && isPremium != 'premium') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => SubscriptionPage()),
@@ -493,7 +500,6 @@ class SettingsPage extends ConsumerWidget {
       return;
     }
 
-    // ベーシックユーザーは現在のロジックを実行
     final controller = TextEditingController();
     IconData? selectedIcon;
 
@@ -501,15 +507,15 @@ class SettingsPage extends ConsumerWidget {
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: Text("種類を追加"),
+          title: const Text("種類を追加"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: controller,
-                decoration: InputDecoration(hintText: "種類名を入力"),
+                decoration: const InputDecoration(hintText: "種類名を入力"),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Wrap(
                 spacing: 10,
                 children: [
@@ -535,7 +541,7 @@ class SettingsPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("キャンセル"),
+              child: const Text("キャンセル"),
             ),
             TextButton(
               onPressed: () {
@@ -548,7 +554,7 @@ class SettingsPage extends ConsumerWidget {
                 }
                 Navigator.pop(context);
               },
-              child: Text("追加"),
+              child: const Text("追加"),
             ),
           ],
         );
@@ -556,7 +562,12 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  Widget _iconChoice(IconData icon, String label, IconData? selectedIcon, ValueChanged<IconData> onSelected) {
+  Widget _iconChoice(
+      IconData icon,
+      String label,
+      IconData? selectedIcon,
+      ValueChanged<IconData> onSelected,
+      ) {
     return GestureDetector(
       onTap: () => onSelected(icon),
       child: Column(
@@ -578,22 +589,22 @@ class SettingsPage extends ConsumerWidget {
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: Text("プレミアムプランにアップグレード"),
-          content: Text("この機能を利用するにはプレミアムプランへの加入が必要です。"),
+          title: const Text("プレミアムプランにアップグレード"),
+          content: const Text("この機能を利用するには課金プランへの加入が必要です。"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("キャンセル"),
+              child: const Text("キャンセル"),
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // ダイアログを閉じる
+                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => SubscriptionPage()),
-                ); // SubscriptionPageへの遷移を追加
+                );
               },
-              child: Text("課金プランを確認する"),
+              child: const Text("課金プランを確認する"),
             ),
           ],
         );
@@ -601,4 +612,3 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 }
-

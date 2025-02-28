@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
 
 final subscriptionStatusProvider = StateNotifierProvider<SubscriptionStatusViewModel, String>(
       (ref) => SubscriptionStatusViewModel(),
@@ -30,6 +31,15 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
     final prefs = await SharedPreferences.getInstance();
     state = prefs.getString('subscription_plan') ?? free; // 保存された状態をロード
     print('[DEBUG] loadStatus => from the actual file in subscription_status_view_model.dart, loadedValue=$state');
+  }
+
+  void updateStatus(String newStatus, WidgetRef ref) {
+    state = newStatus;
+
+    // ★ 追加: 課金プラン解除 (freeに変化) になったら Settings を初期化
+    if (newStatus == 'free') {
+      ref.read(settingsViewModelProvider.notifier).resetToDefaultSettings();
+    }
   }
 
   // UI関連のロジック例

@@ -215,22 +215,35 @@ class _MyPageState extends ConsumerState<MyPage> {
               ),
             ),
 
-            // 日付入力モード
-            Card(
-              margin: const EdgeInsets.only(bottom:16),
-              child: ListTile(
-                title: const Text("日付入力方法 (総収入/固定費)"),
-                subtitle: Text(isCalendarMode ? "カレンダー" : "毎月◯日"),
-                trailing: Switch(
-                  value: isCalendarMode,
-                  onChanged: (val) {
-                    ref
-                        .read(settingsViewModelProvider.notifier)
-                        .setCalendarModeForIncomeFixed(val);
-                  },
-                ),
-              ),
-            ),
+            // // 日付入力モード
+            // Card(
+            //   margin: const EdgeInsets.only(bottom:16),
+            //   child: ListTile(
+            //     title: const Text("日付入力方法 (総収入/固定費)"),
+            //     subtitle: Text(isCalendarMode ? "カレンダー" : "毎月◯日"),
+            //     trailing: Switch(
+            //       value: isCalendarMode,
+            //       onChanged: (val) {
+            //         ref
+            //             .read(settingsViewModelProvider.notifier)
+            //             .setCalendarModeForIncomeFixed(val);
+            //       },
+            //     ),
+            //   ),
+            // ),
+
+            // Card(
+            //   margin: const EdgeInsets.only(bottom:16),
+            //   child: SwitchListTile(
+            //     title: const Text("水道代を2ヶ月に1度追加する"),
+            //     subtitle: const Text("ONにすると、固定費に「水道代」と入力したら2ヶ月ごとに自動追加します"),
+            //     value: ref.watch(settingsViewModelProvider).isWaterBillBimonthly,
+            //     onChanged: (bool val) {
+            //       // Toggleの変更をSettingsViewModelに通知
+            //       ref.read(settingsViewModelProvider.notifier).setWaterBillBimonthly(val);
+            //     },
+            //   ),
+            // ),
 
             // メダルグリッド
             Card(

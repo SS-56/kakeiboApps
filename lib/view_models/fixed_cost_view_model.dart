@@ -2,6 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// ★ 課金プランを判定するため (例)
+import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
+// ★ 水道代2ヶ月に一度の設定フラグを参照するため (例)
+import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
+
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
@@ -35,12 +41,41 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
       print('No fixed costs found in SharedPreferences.');
     }
   }
+
   // 固定費データを追加
   void addItem(FixedCost fixedCost) async {
     final startDate = _getStartDate();
     if (fixedCost.date.isBefore(startDate)) {
       return; // 開始日より前のデータを無視
     }
+
+    // ★ ここから追加: 課金プランかつ「水道代2ヶ月に1度」設定がONならチェック
+    final subscriptionStatus = ref.read(subscriptionStatusProvider);
+    final isPaidUser = (subscriptionStatus == 'basic' || subscriptionStatus == 'premium');
+    final isBimonthly = ref.read(settingsViewModelProvider).isWaterBillBimonthly;
+
+    if (isPaidUser && isBimonthly && fixedCost.title == '水道代') {
+      final lastWaterCost = _findLastWaterBill();
+      if (lastWaterCost != null) {
+        // まだ2ヶ月経過していないなら、今回の追加をスキップ (例)
+        if (!_isOverTwoMonths(lastWaterCost.date, fixedCost.date)) {
+          print('【水道代】前回追加日から2ヶ月経っていないためスキップしました');
+          return;
+        } else {
+          // 2ヶ月以上経過していれば、前回の金額を自動的に使う例
+          final updated = FixedCost(
+            id: fixedCost.id,
+            title: fixedCost.title,
+            amount: lastWaterCost.amount, // 前回の金額を引き継ぎ
+            date: fixedCost.date,
+            memo: fixedCost.memo,
+          );
+          fixedCost = updated;
+        }
+      }
+    }
+    // ★ 追加分ここまで
+
     state = [...state, fixedCost];
     await saveData();
   }
@@ -87,10 +122,12 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
     }).toList();
     print('Filtered fixedCost: $state');
   }
+
   /// 全ての固定費を削除
   void clearAllFixedCosts() {
     state = [];
   }
+
   // ★ ここで更新メソッドを定義 ★
   void updateFixedCost(FixedCost updated) {
     state = [
@@ -105,6 +142,22 @@ class FixedCostViewModel extends StateNotifier<List<FixedCost>> {
     return state
         .where((fc) => fc.title == "貯金")
         .fold<double>(0.0, (sum, fc) => sum + fc.amount);
+  }
+
+  // ★ 以下、2ヶ月経過チェックおよび最後の水道代取得関数を追加
+  // 最後に追加された水道代を取得
+  FixedCost? _findLastWaterBill() {
+    final waterBills = state.where((fc) => fc.title == '水道代').toList();
+    if (waterBills.isEmpty) return null;
+    // 日付が新しい順にソートして先頭を返す
+    waterBills.sort((a, b) => b.date.compareTo(a.date));
+    return waterBills.first;
+  }
+
+  // oldDateからnewDateまでが2ヶ月以上経過しているかを簡易判定
+  bool _isOverTwoMonths(DateTime oldDate, DateTime newDate) {
+    final diffDays = newDate.difference(oldDate).inDays;
+    return diffDays >= 60; // ざっくり60日以上で2ヶ月経過とみなす
   }
 }
 
