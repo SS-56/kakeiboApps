@@ -61,6 +61,12 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     return Scaffold(
         appBar: AppBar(
           title: Text("過去履歴(閲覧のみ)"),
+          automaticallyImplyLeading: false,
+          actions: [
+            IconButton(onPressed: () {
+              Navigator.pop(context);
+            }, icon: Icon(Icons.chevron_right)),
+          ],
         ),
         body: monthlyDocs.isEmpty
             ? Center(child: Text("履歴がありません"))

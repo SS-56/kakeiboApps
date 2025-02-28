@@ -10,6 +10,7 @@ import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/medal_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
+import 'package:yosan_de_kakeibo/views/my_page/history_page.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
 
 class MyPage extends ConsumerStatefulWidget {
@@ -100,7 +101,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           onPressed: () {
             Navigator.of(context).push(
               PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => const _HistoryPage(),
+                pageBuilder: (context, animation, secondaryAnimation) => const HistoryPage(),
                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
                   // 左から右へ画面遷移するために Offset(-1.0, 0.0) -> Offset.zero にする
                   const begin = Offset(-1.0, 0.0);
@@ -157,35 +158,8 @@ class _MyPageState extends ConsumerState<MyPage> {
                 padding: const EdgeInsets.symmetric(vertical:16),
                 child: Column(
                   children: [
-                    Text("目標貯金額: ${savingsGoal.toStringAsFixed(0)} 円"),
-
-                    // 過去+今月 => 貯金総額
-                    FutureBuilder<double>(
-                      future: _futurePastSavingSum,
-                      builder: (ctx, snap) {
-                        if (snap.connectionState == ConnectionState.waiting) {
-                          return const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        if (snap.hasError) {
-                          return Text("貯金総額の取得失敗: ${snap.error}");
-                        }
-                        final pastSaving = snap.data ?? 0.0;
-                        final totalSaving = pastSaving + savingsTotal;
-                        return Padding(
-                          padding: const EdgeInsets.only(top:8.0),
-                          child: Text("貯金総額: ${totalSaving.toStringAsFixed(0)} 円"),
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height:8),
-                    // 毎月の貯金額
-                    Text("毎月の貯金額: ${savingsTotal.toStringAsFixed(0)} 円"),
-
-                    const SizedBox(height:16),
+                    const Text("ホーム画面の固定費ページで種類に\n『貯金』と入力して管理"),
+                    SizedBox(height: 8,),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -208,42 +182,39 @@ class _MyPageState extends ConsumerState<MyPage> {
                         const SizedBox(width:16),
                       ],
                     ),
+                    const SizedBox(height:16),
+                    Text("目標貯金額: ${savingsGoal.toStringAsFixed(0)} 円"),
+
+                    // 過去+今月 => 貯金総額
+                    FutureBuilder<double>(
+                      future: _futurePastSavingSum,
+                      builder: (ctx, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        if (snap.hasError) {
+                          return Text("貯金総額の取得失敗: ${snap.error}");
+                        }
+                        final pastSaving = snap.data ?? 0.0;
+                        final totalSaving = pastSaving + savingsTotal;
+                        return Padding(
+                          padding: const EdgeInsets.only(top:8.0),
+                          child: Text("貯金の総額: ${totalSaving.toStringAsFixed(0)} 円"),
+                        );
+                      },
+                    ),
+
                     const SizedBox(height:8),
-                    const Text("ホーム画面の固定費ページで種類に『貯金』と入力で管理"),
+                    // 毎月の貯金額
+                    Text("当月貯金額: ${savingsTotal.toStringAsFixed(0)} 円"),
+                    const SizedBox(height:8),
                   ],
                 ),
               ),
             ),
-
-            // // 日付入力モード
-            // Card(
-            //   margin: const EdgeInsets.only(bottom:16),
-            //   child: ListTile(
-            //     title: const Text("日付入力方法 (総収入/固定費)"),
-            //     subtitle: Text(isCalendarMode ? "カレンダー" : "毎月◯日"),
-            //     trailing: Switch(
-            //       value: isCalendarMode,
-            //       onChanged: (val) {
-            //         ref
-            //             .read(settingsViewModelProvider.notifier)
-            //             .setCalendarModeForIncomeFixed(val);
-            //       },
-            //     ),
-            //   ),
-            // ),
-
-            // Card(
-            //   margin: const EdgeInsets.only(bottom:16),
-            //   child: SwitchListTile(
-            //     title: const Text("水道代を2ヶ月に1度追加する"),
-            //     subtitle: const Text("ONにすると、固定費に「水道代」と入力したら2ヶ月ごとに自動追加します"),
-            //     value: ref.watch(settingsViewModelProvider).isWaterBillBimonthly,
-            //     onChanged: (bool val) {
-            //       // Toggleの変更をSettingsViewModelに通知
-            //       ref.read(settingsViewModelProvider.notifier).setWaterBillBimonthly(val);
-            //     },
-            //   ),
-            // ),
 
             // メダルグリッド
             Card(
@@ -389,97 +360,6 @@ class _MyPageState extends ConsumerState<MyPage> {
           Text(label, style: const TextStyle(fontSize: 12)),
         ],
       ),
-    );
-  }
-}
-
-// ★ 履歴ページ(読み取り専用)
-class _HistoryPage extends StatelessWidget {
-  const _HistoryPage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("過去データ（閲覧のみ）"),
-      ),
-      body: FutureBuilder<List<Map<String,dynamic>>>(
-        future: _fetchAllMonthlyDocs(),
-        builder: (ctx, snapshot){
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text("エラー: ${snapshot.error}"));
-          }
-          final docs = snapshot.data ?? [];
-          if (docs.isEmpty) {
-            return const Center(child: Text("履歴がありません"));
-          }
-          return ListView.builder(
-            itemCount: docs.length,
-            itemBuilder: (ctx, i){
-              final doc = docs[i];
-              final monthId = doc['monthId'] as String? ?? 'unknown';
-              return Card(
-                child: ListTile(
-                  title: Text("月: $monthId"),
-                  subtitle: Text(
-                      "固定費:${(doc['fixedCosts'] as List).length}件 "
-                          "収入:${(doc['incomes'] as List).length}件 "
-                          "支出:${(doc['expenses'] as List).length}件"
-                  ),
-                  onTap: (){
-                    _showDetailDialog(context, doc);
-                  },
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Future<List<Map<String,dynamic>>> _fetchAllMonthlyDocs() async {
-    final sp = await SharedPreferences.getInstance();
-    final uid = sp.getString('firebase_uid') ?? '';
-    if (uid.isEmpty) return [];
-
-    final fs = FirebaseFirestore.instance;
-    final snap = await fs
-        .collection('user')
-        .doc(uid)
-        .collection('monthly_data')
-        .orderBy('timestamp', descending:true)
-        .get();
-
-    final list = <Map<String,dynamic>>[];
-    for (final d in snap.docs){
-      final data = d.data();
-      data['monthId'] = d.id;
-      list.add(data);
-    }
-    return list;
-  }
-
-  void _showDetailDialog(BuildContext context, Map<String,dynamic> docData){
-    showDialog(
-      context: context,
-      builder: (_){
-        return AlertDialog(
-          title: const Text("詳細 (編集不可)"),
-          content: SingleChildScrollView(
-            child: Text(docData.toString()),
-          ),
-          actions:[
-            TextButton(
-              onPressed: ()=>Navigator.pop(context),
-              child: const Text("閉じる"),
-            )
-          ],
-        );
-      },
     );
   }
 }
