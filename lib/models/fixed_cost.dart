@@ -33,6 +33,8 @@ class FixedCost {
       'title': title,
       'amount': amount,
       'date': date.toIso8601String(),
+      'memo': memo,
+      'isRemember': isRemember, // ★ 追加
     };
 
     if (includeId && id != null) {
@@ -48,6 +50,8 @@ class FixedCost {
       title: json['title'],
       amount: (json['amount'] as num).toDouble(),
       date: DateTime.parse(json['date'] as String),
+      memo: json['memo'] as String?,
+      isRemember: json['isRemember'] as bool? ?? false, // ★
     );
   }
 

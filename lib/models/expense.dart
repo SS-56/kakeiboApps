@@ -3,7 +3,6 @@ class Expense {
   final String title; // 種類
   final double amount; // 金額
   final DateTime date; // 日付
-
   String? memo;
   bool isWaste;
 
@@ -12,7 +11,6 @@ class Expense {
     required this.title,
     required this.amount,
     required this.date,
-
     this.memo,
     this.isWaste = false,
   });
@@ -22,6 +20,7 @@ class Expense {
       'title': title,
       'amount': amount,
       'date': date.toIso8601String(),
+      'isWaste': isWaste, // ★ 追加
     };
 
     if (includeId && id != null) {
@@ -38,6 +37,7 @@ class Expense {
       title: json['title'],
       amount: (json['amount'] as num).toDouble(), // num型からdouble型に変換
       date: DateTime.parse(json['date'] as String),
+      isWaste: json['isWaste'] as bool? ?? false, // ★
     );
   }
 

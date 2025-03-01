@@ -25,12 +25,10 @@ class ExpenseViewModel extends StateNotifier<List<Expense>> {
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString('expenses'); // 修正: 正しいキーを使用
-    print('Loading expenses from SharedPreferences: $jsonString');
 
     if (jsonString != null) {
       final List<dynamic> jsonData = jsonDecode(jsonString);
       state = jsonData.map((e) => Expense.fromJson(e)).toList();
-      print('Loaded expenses: $state');
     } else {
       print('No expenses found in SharedPreferences.');
     }

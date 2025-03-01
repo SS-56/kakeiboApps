@@ -206,15 +206,20 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
            required bool isRemember,
            required bool isWaste,
          }) {
-           ref.read(fixedCostViewModelProvider.notifier).updateFixedCost(
-             fixedCost.copyWith(
+           final updateFixed = fixedCost.copyWith(
                title: title,
                amount: amount,
                date: date,
                memo: memo,
                isRemember: isRemember,
-             ),
-           );
+             );
+           ref.read(fixedCostViewModelProvider.notifier).updateFixedCost(updateFixed);
+
+           // ViewModel の updateFixedCost
+
+
+           // 変更を永続化
+           ref.read(fixedCostViewModelProvider.notifier).saveData();
          },
        );
      }

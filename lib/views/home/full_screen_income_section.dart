@@ -202,15 +202,17 @@ class FullScreenIncomeSection extends ConsumerWidget {
         required bool isRemember,
         required bool isWaste,
       }) {
-        ref.read(incomeViewModelProvider.notifier).updateIncome(
-              income.copyWith(
-                title: title,
-                amount: amount,
-                date: date,
-                memo: memo,
-                isRemember: isRemember,
-              ),
-            );
+        final updateIncome = income.copyWith(
+          title: title,
+          amount: amount,
+          date: date,
+          memo: memo,
+          isRemember: isRemember,
+        );
+
+        ref.read(incomeViewModelProvider.notifier).updateIncome(updateIncome);
+
+
         ref.read(incomeViewModelProvider.notifier).saveData();
       },
     );

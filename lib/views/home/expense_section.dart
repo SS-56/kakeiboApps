@@ -20,10 +20,10 @@ class ExpenseSection extends StatelessWidget {
     final isAscending = ref.watch(sortOrderProvider);
     final sortedExpenses = List.from(expenses)
       ..sort((a, b) =>
-          isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
+      isAscending ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
 
     final totalExpenses =
-        sortedExpenses.fold(0.0, (sum, expense) => sum + expense.amount);
+    sortedExpenses.fold(0.0, (sum, expense) => sum + expense.amount);
 
     // 浪費合計 (1ヶ月間合算) の計算例
     final wasteTotal = expenses
@@ -32,7 +32,7 @@ class ExpenseSection extends StatelessWidget {
 
     final isPaidUser = ref.watch(
       subscriptionStatusProvider.select((s) =>
-          s == SubscriptionStatusViewModel.premium ||
+      s == SubscriptionStatusViewModel.premium ||
           s == SubscriptionStatusViewModel.basic),
     );
 
@@ -49,16 +49,16 @@ class ExpenseSection extends StatelessWidget {
               GestureDetector(
                 onTap: () {
                   ref.read(expensesExpandProvider.notifier).state =
-                      !ref.read(expensesExpandProvider.notifier).state;
+                  !ref.read(expensesExpandProvider.notifier).state;
                 },
                 child: Container(
                   height: MediaQuery.of(context).size.height / 20,
                   color: Colors.grey[10],
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         '使った金額',
                         style: TextStyle(
                           fontSize: 18,
@@ -80,7 +80,7 @@ class ExpenseSection extends StatelessWidget {
                   child: Center(
                     child: Text(
                       '${totalExpenses.toStringAsFixed(0)} 円',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
@@ -104,8 +104,8 @@ class ExpenseSection extends StatelessWidget {
                 background: Container(
                   color: Colors.red,
                   alignment: Alignment.centerRight,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(Icons.delete, color: Colors.white),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 onDismissed: (direction) {
                   ref
@@ -113,7 +113,7 @@ class ExpenseSection extends StatelessWidget {
                       .removeItem(expense);
                 },
                 child: Card(
-                  margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: ListTile(
                     leading: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -128,7 +128,7 @@ class ExpenseSection extends StatelessWidget {
                     title: Center(
                       child: Text(
                         '${expense.amount.toStringAsFixed(0)} 円',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     subtitle: (expense.memo != null && expense.memo!.isNotEmpty)
@@ -136,10 +136,10 @@ class ExpenseSection extends StatelessWidget {
                         : null,
                     trailing: isPaidUser
                         ? IconButton(
-                            icon: const Icon(Icons.settings, color: Colors.black,),
-                            onPressed: () =>
-                                _editExpense(context, ref, expense),
-                          )
+                      icon: const Icon(Icons.settings, color: Colors.black),
+                      onPressed: () =>
+                          _editExpense(context, ref, expense),
+                    )
                         : null,
                   ),
                 ),
@@ -166,6 +166,7 @@ class ExpenseSection extends StatelessWidget {
         // 浪費アイコン表示
         memo: expense.memo,
         isRemember: false,
+        // 記憶は固定費や収入向け => false
         isWaste: expense.isWaste,
       ),
       onSave: ({
@@ -176,15 +177,18 @@ class ExpenseSection extends StatelessWidget {
         required bool isRemember,
         required bool isWaste,
       }) {
-        ref.read(expenseViewModelProvider.notifier).updateExpense(
-              expense.copyWith(
-                title: title,
-                amount: amount,
-                date: date,
-                memo: memo,
-                isWaste: isWaste,
-              ),
-            );
+        final updateExpense = expense.copyWith(
+          title: title,
+          amount: amount,
+          date: date,
+          memo: memo,
+          isWaste: isWaste, // ★ 浪費ボタンの更新を適用
+        );
+        // 更新後に saveData() も呼んで、「浪費ボタン(isWaste)」を保存する
+        ref.read(expenseViewModelProvider.notifier).updateExpense(updateExpense);
+
+        // ★ ここが重要: 変更を永続化 => 再起動しても浪費ボタンの状態を保持
+        ref.read(expenseViewModelProvider.notifier).saveData();
       },
     );
   }
