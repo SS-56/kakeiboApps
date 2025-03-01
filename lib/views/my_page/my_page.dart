@@ -71,9 +71,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     final wasteTotal = expenses.where((e) => e.isWaste).fold<double>(0.0, (sum, e) => sum + e.amount);
     final nonWasteTotal = totalSpent - wasteTotal;
 
-    final settings = ref.watch(settingsViewModelProvider);
-    final isCalendarMode = settings.useCalendarForIncomeFixed;
-
     final subscriptionStatus = ref.watch(subscriptionStatusProvider);
     final isPaidUser = (subscriptionStatus == 'basic' || subscriptionStatus == 'premium');
 
@@ -89,7 +86,7 @@ class _MyPageState extends ConsumerState<MyPage> {
 
     final dataMap = {
       "浪費": wasteTotal,
-      "非浪費": nonWasteTotal,
+      "支出": nonWasteTotal,
     };
 
     return Scaffold(
