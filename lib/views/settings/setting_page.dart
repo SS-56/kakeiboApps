@@ -29,6 +29,7 @@ class SettingsPage extends ConsumerWidget {
 
     // ★ 修正箇所: 日付入力方法用のbool
     final isCalendarMode = ref.watch(settingsViewModelProvider).useCalendarForIncomeFixed;
+    final isEveryMonth = !isCalendarMode;
     // ★ 修正箇所: 水道代2ヶ月用のbool
     final isBimonthly = ref.watch(settingsViewModelProvider).isWaterBillBimonthly;
 
@@ -98,17 +99,17 @@ class SettingsPage extends ConsumerWidget {
                 style: TextStyle(color: isPaidUser ? Colors.black : Colors.grey),
               ),
               subtitle: Text(
-                isCalendarMode ? "カレンダー" : "毎月◯日",
+                isEveryMonth ? "毎月◯日" : "カレンダー",
                 style: TextStyle(color: isPaidUser ? Colors.black : Colors.grey),
               ),
               trailing: Switch(
-                value: isCalendarMode,
+                value: isEveryMonth,
                 onChanged: (bool val) {
                   if (!isPaidUser) {
                     _showUpgradeDialog(context);
                     return;
                   }
-                  ref.read(settingsViewModelProvider.notifier).setCalendarModeForIncomeFixed(val);
+                  ref.read(settingsViewModelProvider.notifier).setCalendarModeForIncomeFixed(!val);
                 },
                 // ★ 他と同様に紫へ
                 activeColor: Colors.blue,
