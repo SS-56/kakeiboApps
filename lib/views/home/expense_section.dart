@@ -126,9 +126,23 @@ class ExpenseSection extends StatelessWidget {
                       ],
                     ),
                     title: Center(
-                      child: Text(
-                        '${expense.amount.toStringAsFixed(0)} 円',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 40),
+                        child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Container(
+                              width: 80, // 固定幅を指定
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                expense.amount.toStringAsFixed(0),
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text("円"),
+                          ],
+                        ),
                       ),
                     ),
                     subtitle: (expense.memo != null && expense.memo!.isNotEmpty)

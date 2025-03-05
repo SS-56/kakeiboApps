@@ -47,6 +47,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
         .doc(uid)
         .collection('monthly_data')
         .orderBy('timestamp', descending:true)
+        .limit(24) // ★ ここで24件まで取得
         .get();
 
     return snap.docs.map((doc) {
@@ -60,16 +61,20 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text("過去履歴(閲覧のみ)"),
+          title: const Text("過去履歴(閲覧のみ)"),
           automaticallyImplyLeading: false,
+          // ↪ ここで leading を使わず、右上に「閉じる」代わりのボタンを配置している
           actions: [
-            IconButton(onPressed: () {
-              Navigator.pop(context);
-            }, icon: Icon(Icons.chevron_right)),
+            IconButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.chevron_right), // → ボタン（右側）
+            ),
           ],
         ),
         body: monthlyDocs.isEmpty
-            ? Center(child: Text("履歴がありません"))
+            ? const Center(child: Text("履歴がありません"))
             : ListView.builder(
           itemCount: monthlyDocs.length,
           itemBuilder: (ctx, i) {
@@ -79,9 +84,11 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
             return Card(
               child: ListTile(
                 title: Text("月: $monthId"),
-                subtitle: Text("incomes: ${(m['incomes'] as List).length}件, "
-                    "fixed: ${(m['fixedCosts'] as List).length}件, "
-                    "expenses: ${(m['expenses'] as List).length}件"),
+                subtitle: Text(
+                    "incomes: ${(m['incomes'] as List).length}件, "
+                        "fixed: ${(m['fixedCosts'] as List).length}件, "
+                        "expenses: ${(m['expenses'] as List).length}件"
+                ),
                 onTap: (){
                   // detail page? or just show dialog
                   _showDetailDialog(m);
@@ -98,14 +105,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
       context: context,
       builder: (_){
         return AlertDialog(
-          title: Text("詳細（編集不可）"),
+          title: const Text("詳細（編集不可）"),
           content: SingleChildScrollView(
             child: Text(monthData.toString()),
           ),
           actions:[
             TextButton(
               onPressed: ()=>Navigator.pop(context),
-              child: Text("閉じる"),
+              child: const Text("閉じる"),
             )
           ],
         );

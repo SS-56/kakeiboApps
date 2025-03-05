@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
-
+import 'package:yosan_de_kakeibo/handlers/monthly_data_handler.dart';
 import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
-import 'package:yosan_de_kakeibo/models/income.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
 import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
@@ -16,13 +15,13 @@ import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/update_view_model.dart';
-
 import 'package:yosan_de_kakeibo/views/home/expense_section.dart';
 import 'package:yosan_de_kakeibo/views/home/full_screen_fixed_costs_section.dart';
 import 'package:yosan_de_kakeibo/views/home/full_screen_income_section.dart';
 import 'package:yosan_de_kakeibo/views/widgets/common_section_widget.dart';
-// 既存の input_area.dart を使う
 import 'package:yosan_de_kakeibo/views/widgets/input_area.dart';
+// ★ 新規に作成する読み取り専用のホーム画面過去データ用ページ
+import 'package:yosan_de_kakeibo/views/home/home_history_page.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -94,7 +93,8 @@ class HomePage extends ConsumerWidget {
 
     // (3) 課金状態
     final subscriptionStatus = ref.watch(subscriptionStatusProvider);
-    final isPaidUser = (subscriptionStatus == 'basic' || subscriptionStatus == 'premium');
+    final isPaidUser =
+    (subscriptionStatus == 'basic' || subscriptionStatus == 'premium');
 
     // (4) AppBar
     String remainText;
@@ -111,21 +111,14 @@ class HomePage extends ConsumerWidget {
       barColor = Colors.black;
       txtColor = Colors.red;
     } else {
-      // 残額がプラスの場合のみ "xx％" 判定
-      // ※ 何を基準に "20%" "10%" を計算するか要注意
-      //   - ここでは例として "totalIncome" を基準にする
-      final totalIncome = incomes.fold(0.0, (sum, inc) => sum + inc.amount);
-
-      if (totalIncome > 0) {
-        final ratio = remainingBalance / totalIncome;
-        // ratio < 0.1 => 10％未満 => 薄いピンク
-        // ratio < 0.2 => 20％未満 => 薄い黄色
+      final totalInc = incomes.fold(0.0, (sum, inc) => sum + inc.amount);
+      if (totalInc > 0) {
+        final ratio = remainingBalance / totalInc;
         if (ratio < 0.1) {
-          barColor = Colors.pink[100]!;   // 薄いピンク
+          barColor = Colors.pink[100]!;
         } else if (ratio < 0.2) {
-          barColor = Colors.yellow[100]!; // 薄い黄色
+          barColor = Colors.yellow[100]!;
         }
-        // それ以外 => 何もしない(白)
       }
     }
 
@@ -141,6 +134,34 @@ class HomePage extends ConsumerWidget {
           ),
         ),
         centerTitle: true,
+
+        // ★ 課金ユーザーのみ、leadingに <ボタンを追加
+        leading: isPaidUser
+            ? IconButton(
+          icon: const Icon(Icons.chevron_left),
+          onPressed: () async {
+            // 1) finalizeMonth で月次リセット前のデータを保存
+            await finalizeMonth(ref);
+            // 2) HomeHistoryPage へ左遷移
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (ctx, anim, secAnim) => const HomeHistoryPage(),
+                transitionsBuilder: (ctx, anim, secAnim, child) {
+                  const begin = Offset(-1.0, 0.0);
+                  const end = Offset.zero;
+                  final tween = Tween(begin: begin, end: end);
+                  final curve = Curves.easeInOut;
+                  return SlideTransition(
+                    position: tween.animate(CurvedAnimation(parent: anim, curve: curve)),
+                    child: child,
+                  );
+                },
+              ),
+            );
+          },
+        )
+            : null,
       ),
       body: Column(
         children: [
@@ -155,7 +176,6 @@ class HomePage extends ConsumerWidget {
             fullScreenWidget: const FullScreenIncomeSection(),
           ),
           const Divider(height: 20, thickness: 2),
-
           // 固定費
           CommonSectionWidget(
             title: '固定費',
@@ -167,12 +187,10 @@ class HomePage extends ConsumerWidget {
             fullScreenWidget: const FullScreenFixedCostsSection(),
           ),
           const Divider(height: 20, thickness: 2),
-
           // 使った金額
           Expanded(
             child: ExpenseSection(ref: ref),
           ),
-
           // 下部: input_area を使った使った金額の追加
           _buildExpenseInputArea(context, ref, remainingBalance, isPaidUser, fixedCosts),
         ],
@@ -180,8 +198,7 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  /// input_area で使った金額を追加
-  /// 追加後に残高がマイナスなら => 取り崩しDialog => 貯金を減らすのみ
+  // 以下のコードは既存のまま残し、削除しない
   Widget _buildExpenseInputArea(
       BuildContext context,
       WidgetRef ref,
@@ -237,7 +254,6 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  /// 使った金額追加後 => 取り崩しDialog
   void _showTorikuzushiDialogAfterAdd(
       BuildContext context,
       WidgetRef ref,
@@ -281,7 +297,6 @@ class HomePage extends ConsumerWidget {
                       return;
                     }
                     Navigator.pop(dialogCtx);
-                    // 取り崩し処理 => 総収入に追加しないで貯金を減らすのみ
                     _handleTorikuzushi(ref, context, val);
                   },
                   child: const Text('OK'),
@@ -294,7 +309,6 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  /// 取り崩し処理 => 貯金Cardだけを減らす (総収入に加算しない)
   void _handleTorikuzushi(WidgetRef ref, BuildContext context, double toriAmount) {
     final fixedCosts = ref.read(fixedCostViewModelProvider);
     final saving = fixedCosts.firstWhereOrNull((fc) => fc.title == '貯金');
@@ -310,9 +324,6 @@ class HomePage extends ConsumerWidget {
       );
       return;
     }
-
-    // ここで総収入に "取り崩し" を追加していたのを削除:
-    // ref.read(incomeViewModelProvider.notifier).addItem(...); // 削除
 
     // 貯金を減らすだけ
     final newSaving = (saving.amount - toriAmount).clamp(0.0, double.infinity);

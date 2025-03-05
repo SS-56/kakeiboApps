@@ -7,6 +7,7 @@ import 'package:yosan_de_kakeibo/models/income.dart';
 import 'package:yosan_de_kakeibo/services/firebase_service.dart';
 
 class FirebaseRepository {
+  // 既存のフィールド・コンストラクタ
   final FirebaseService _firebaseService = FirebaseService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -69,7 +70,7 @@ class FirebaseRepository {
     return snapshot.docs.map((doc) => FixedCost.fromJson(doc.data())).toList();
   }
 
-  /// ====== ここから新規追加: 月次まとめ保存 ======
+  /// ====== 既存: 月次まとめ保存 ======
   Future<void> saveMonthlyData({
     required String uid,
     required String yyyyMM,
@@ -109,6 +110,54 @@ class FirebaseRepository {
   Future<void> pruneOldMonthlyData({required String uid}) async {
     // 例: monthly_dataをtimestamp昇順で取得し、25件以上なら古い分を削除 etc.
     // ...
+  }
+
+  // --------------------------------------------------------------------------------
+  // ★ 新規追加: ホーム画面の過去データを取得する例
+  //  -> monthly_data コレクションから timestamp 降順で1件のみ取得
+  // --------------------------------------------------------------------------------
+  Future<List<Map<String, dynamic>>> loadHomeHistory(String uid) async {
+    // ここで monthly_data の最新ドキュメントを取得する例
+    final snap = await _firestore
+        .collection('user')
+        .doc(uid)
+        .collection('monthly_data')
+        .orderBy('timestamp', descending: true)
+        .limit(24)
+        .get();
+
+    if (snap.docs.isEmpty) {
+      return [];
+    }
+
+    final List<Map<String, dynamic>> result = [];
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      data['docId'] = doc.id; // doc.id = 'yyyyMM'
+      result.add(data);
+    }
+    return result; // => HomeHistoryPage で List<Map<String,dynamic>> として使用
+  }
+
+  // --------------------------------------------------------------------------------
+  // ★ 新規追加: マイページの過去データを取得する例
+  //  -> 同じ monthly_data から浪費や貯金額を取り出す場合
+  // --------------------------------------------------------------------------------
+  Future<Map<String, dynamic>?> loadMyPageHistory(String uid) async {
+    // 例: 同様に 1件だけ取得
+    final snap = await _firestore
+        .collection('user')
+        .doc(uid)
+        .collection('monthly_data')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .get();
+
+    if (snap.docs.isEmpty) {
+      return null;
+    }
+    // 1件だけ返す場合
+    return snap.docs.first.data();
   }
 }
 

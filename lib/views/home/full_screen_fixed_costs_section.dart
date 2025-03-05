@@ -100,11 +100,24 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                             ],
                           ),
                           title: Center(
-                            child: Text(
-                              '${fixedCost.amount.toStringAsFixed(0)} 円', // 金額
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 40.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Container(
+                                    width: 80,
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      fixedCost.amount.toStringAsFixed(0),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Text("円"),
+                                ],
                               ),
                             ),
                           ),

@@ -13,8 +13,7 @@ import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/medal_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 
-// monthly_data_handler.dart
-
+/// 既存の clearMonthlyData は削除しない
 void clearMonthlyData({
   required List<Income> incomes,
   required List<FixedCost> fixedCosts,
@@ -24,12 +23,10 @@ void clearMonthlyData({
   for (int i = 0; i < incomes.length; i++) {
     if (incomes[i].isRemember) {
       // 記憶フラグON => そのまま保持
-      // 必要なら、日付だけ更新 or 何もしない
       incomes[i] = incomes[i].copyWith(
-          date: DateTime.now(),
-          amount: incomes[i].amount,
+        date: DateTime.now(),
+        amount: incomes[i].amount,
       );
-      continue;
     } else {
       // 記憶フラグOFF => リセット
       incomes[i] = Income(
@@ -46,14 +43,11 @@ void clearMonthlyData({
   // ▼ 固定費
   for (int i = 0; i < fixedCosts.length; i++) {
     if (fixedCosts[i].isRemember) {
-      // 記憶ON => そのまま
       fixedCosts[i] = fixedCosts[i].copyWith(
-          date: DateTime.now(),
-          amount: fixedCosts[i].amount,
+        date: DateTime.now(),
+        amount: fixedCosts[i].amount,
       );
-      continue;
     } else {
-      // リセット
       fixedCosts[i] = FixedCost(
         id: fixedCosts[i].id,
         title: fixedCosts[i].title,
@@ -79,9 +73,8 @@ void clearMonthlyData({
   }
 }
 
-/// 例: 月次処理(締め)で「クリア+メダル判定」を行う関数
-/// - refから現在の収支を取得 -> どの程度貯金を使ったか判定 -> medalViewModelでメダル付与
-/// - その後 clearMonthlyDataでデータをリセット
+/// ★ 修正版 finalizeMonth:
+///   SharedPreferencesにあるフラグ「isUserTriggeredFinalize」が true のときだけ clearMonthlyData を行う
 Future<void> finalizeMonth(WidgetRef ref) async {
   // 1) 現在のリスト取得
   final incomes = ref.read(incomeViewModelProvider);
@@ -94,7 +87,7 @@ Future<void> finalizeMonth(WidgetRef ref) async {
   final totalSpent  = expenses.fold(0.0, (sum, e) => sum + e.amount);
   final remainingBalance = totalIncome - totalFixed - totalSpent;
 
-  // 3) oldSaving: 先月開始時に保存してあった値
+  // 3) oldSaving
   final sp = await SharedPreferences.getInstance();
   final oldSaving = sp.getDouble("start_of_month_saving") ?? 0;
 
@@ -106,7 +99,7 @@ Future<void> finalizeMonth(WidgetRef ref) async {
   final subscription = ref.read(subscriptionStatusProvider);
   final isPaidUser = (subscription=='basic' || subscription=='premium');
 
-  // 6) メダル判定 => クリア前に
+  // 6) メダル判定 => クリア前
   await ref.read(medalViewModelProvider.notifier).checkAndAwardMedal(
     totalIncome: totalIncome,
     remainingBalance: remainingBalance,
@@ -115,9 +108,8 @@ Future<void> finalizeMonth(WidgetRef ref) async {
     isPaidUser: isPaidUser,
   );
 
-  // 6) Firebase保存 (課金ユーザーのみ)
+  // 7) Firebase保存 (課金ユーザーのみ)
   if (isPaidUser) {
-    // uid 例: Apple/Googleサインイン後
     final uid = sp.getString('firebase_uid') ?? 'dummy';
     final now = DateTime.now();
     final yyyyMM = '${now.year}${now.month.toString().padLeft(2,'0')}';
@@ -130,17 +122,23 @@ Future<void> finalizeMonth(WidgetRef ref) async {
       fixedCosts: fixedCosts,
       expenses: expenses,
     );
-    // await repo.pruneOldMonthlyData(uid: uid); // 24か月より古いの削除
   }
 
-  // 7) クリア (isRemember でスキップ)
-  clearMonthlyData(
-    incomes: incomes,
-    fixedCosts: fixedCosts,
-    expenses: expenses,
-  );
+  // ---------------------------
+  // ★ ここが肝心: isUserTriggeredFinalize が true ならデータをクリア
+  // ---------------------------
+  final userTriggered = sp.getBool('isUserTriggeredFinalize') ?? false;
+  if (userTriggered) {
+    // クリア
+    clearMonthlyData(
+      incomes: incomes,
+      fixedCosts: fixedCosts,
+      expenses: expenses,
+    );
+    // フラグを戻す
+    await sp.setBool('isUserTriggeredFinalize', false);
+  }
 
   // 8) newSaving を次回 oldSaving に
-  //   (本来= 次の月初に読み込むが簡易的にここで保存)
   await sp.setDouble('start_of_month_saving', newSaving);
 }
