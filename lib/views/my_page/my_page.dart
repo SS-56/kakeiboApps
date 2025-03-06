@@ -356,15 +356,18 @@ class _MyPageState extends ConsumerState<MyPage> {
     String label;
     switch (medal.type) {
       case MedalType.gold:
-        medalWidget = Image.asset("assets/images/gold.png", width: 32, height: 32);
+        medalWidget = Icon(Icons.workspace_premium, color: Colors.amber, size: 32,);
+        // medalWidget = Image.asset("assets/images/gold.png", width: 32, height: 32);
         label = "金";
         break;
       case MedalType.silver:
-        medalWidget = Image.asset("assets/images/silver.png", width: 32, height: 32);
+        medalWidget = Icon(Icons.workspace_premium, color: Colors.grey, size: 32);
+        // medalWidget = Image.asset("assets/images/silver.png", width: 32, height: 32);
         label = "銀";
         break;
       case MedalType.bronze:
-        medalWidget = Image.asset("assets/images/bronze.png", width: 32, height: 32);
+        medalWidget = Icon(Icons.workspace_premium, color: Colors.brown, size: 32);
+        // medalWidget = Image.asset("assets/images/bronze.png", width: 32, height: 32);
         label = "銅";
         break;
       default:
