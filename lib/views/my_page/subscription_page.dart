@@ -116,7 +116,7 @@ class SubscriptionPage extends ConsumerWidget {
             // 「(開発中)」(赤)  if isDev
             if (isDev)
               const Text(
-                "(現在開発中につき、近日リリース予定です)",
+                "(現在開発中 近日リリース予定です)",
                 style: TextStyle(color: Colors.red),
               ),
             const SizedBox(height: 8),

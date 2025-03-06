@@ -40,7 +40,7 @@ class CommonSectionWidget extends ConsumerWidget {
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   Icon(
-                    isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                    isExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,color: Colors.cyan,
                   ),
                 ],
               ),
@@ -61,7 +61,7 @@ class CommonSectionWidget extends ConsumerWidget {
                     bottom: 8,
                     right: 8,
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios, color: Colors.blue),
+                      icon: const Icon(Icons.arrow_forward_ios, color: Colors.black),
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => fullScreenWidget),

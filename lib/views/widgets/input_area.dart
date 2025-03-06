@@ -130,7 +130,7 @@ class InputArea extends ConsumerWidget {
 
           // ▼ 追加ボタン
           IconButton(
-            icon: const Icon(Icons.add, color: Colors.blue),
+            icon: const Icon(Icons.add, color: Colors.cyan),
             onPressed: () {
               final title = titleController.text.trim();
               final amount = double.tryParse(amountController.text.trim());

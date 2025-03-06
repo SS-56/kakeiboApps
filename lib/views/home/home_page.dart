@@ -129,7 +129,7 @@ class HomePage extends ConsumerWidget {
           'あと $remainText',
           style: TextStyle(
             color: txtColor,
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -138,7 +138,7 @@ class HomePage extends ConsumerWidget {
         // ★ 課金ユーザーのみ、leadingに <ボタンを追加
         leading: isPaidUser
             ? IconButton(
-          icon: const Icon(Icons.chevron_left),
+          icon: const Icon(Icons.chevron_left, color: Colors.black, size: 32,),
           onPressed: () async {
             // 1) finalizeMonth で月次リセット前のデータを保存
             await finalizeMonth(ref);
@@ -175,7 +175,7 @@ class HomePage extends ConsumerWidget {
             },
             fullScreenWidget: const FullScreenIncomeSection(),
           ),
-          const Divider(height: 20, thickness: 2),
+          const Divider(height: 20, thickness: 2, color: Colors.cyan,),
           // 固定費
           CommonSectionWidget(
             title: '固定費',
@@ -186,7 +186,7 @@ class HomePage extends ConsumerWidget {
             },
             fullScreenWidget: const FullScreenFixedCostsSection(),
           ),
-          const Divider(height: 20, thickness: 2),
+          const Divider(height: 20, thickness: 2, color: Colors.cyan,),
           // 使った金額
           Expanded(
             child: ExpenseSection(ref: ref),

@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/page_providers.dart';
@@ -38,6 +39,16 @@ class MyApp extends ConsumerWidget {
         primarySwatch: Colors.purple,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      locale: const Locale('ja'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ja'), // ✅ 日本語対応
+        Locale('en'), // ✅ 念のため英語も追加
+      ],
       home: const MainScaffold(),
     );
   }
@@ -61,6 +72,7 @@ class MainScaffold extends ConsumerWidget {
     return Scaffold(
       body: pages[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
+        selectedItemColor: Colors.cyan[800],
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'ホーム'),

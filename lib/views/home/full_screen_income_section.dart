@@ -72,6 +72,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
                         );
                       },
                       child: Card(
+                        color: Color.fromARGB(255, 255, 255, 255),
                         margin:
                             EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         child: ListTile(

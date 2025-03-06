@@ -69,6 +69,7 @@ class ExpenseSection extends StatelessWidget {
                         ref.watch(expensesExpandProvider)
                             ? Icons.arrow_drop_up
                             : Icons.arrow_drop_down,
+                        color: Colors.cyan,
                       ),
                     ],
                   ),
@@ -90,7 +91,7 @@ class ExpenseSection extends StatelessWidget {
             ],
           ),
         ),
-        const Divider(height: 1),
+        const Divider(height: 1, color: Colors.cyan,),
 
         // 支出リスト
         Expanded(
@@ -113,6 +114,7 @@ class ExpenseSection extends StatelessWidget {
                       .removeItem(expense);
                 },
                 child: Card(
+                  color: Color.fromARGB(255, 255, 255, 255),
                   margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: ListTile(
                     leading: Column(
