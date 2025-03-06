@@ -31,7 +31,7 @@ class SubscriptionPage extends ConsumerWidget {
         "title": "プレミアムプラン",
         "price": 300,
         "description": """
-・収入/固定費/使った金額の種類をアイコンで選択
+・収入/固定費/使った金額の種類をアイコン切替可
 ・支出額全体を種類別にグラフ化して分析
 ・カメラでレシート撮影して金額を自動入力
 ・コンシェルジュ機能で家計管理をサポート
@@ -110,13 +110,13 @@ class SubscriptionPage extends ConsumerWidget {
             // 「現在加入中のプランです」(赤)  or  空
             if (isCurrent)
               const Text(
-                "現在加入中のプランです。",
+                "現在加入中のプランです",
                 style: TextStyle(color: Colors.red),
               ),
             // 「(開発中)」(赤)  if isDev
             if (isDev)
               const Text(
-                "(現在開発中につき、近日リリース予定です。)",
+                "(現在開発中につき、近日リリース予定です)",
                 style: TextStyle(color: Colors.red),
               ),
             const SizedBox(height: 8),
