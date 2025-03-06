@@ -6,94 +6,53 @@ import 'package:yosan_de_kakeibo/utils/ui_utils.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 
 class SubscriptionPage extends ConsumerWidget {
+  const SubscriptionPage({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPremium = ref.watch(subscriptionStatusProvider); // 現在の課金状態
+    final currentPlan = ref.watch(subscriptionStatusProvider); // e.g. "free"/"basic"/"premium"
 
+    // プランリスト: basic / premium
     final List<Map<String, dynamic>> plans = [
       {
-        "title": "basic",
-        "displayTitle": "ベーシックプラン",
-        "description": isPremium == "basic"
-            ? Text(
-          "現在加入中のプランです。",
-          style: TextStyle(color: Colors.red),
-        )
-            : Text(
-          """
-・各金額パネルをタップしたらメモを入力するなど編集が可能。
-・収入、固定費、使った金額の種類入力方式を\n　アイコンに変更可能。
-・各金額パネルで、ご自身が「浪費」と感じたら、\n　浪費アイコンをタップすると、マイページで\n　浪費額合計とグラフを表示。
-・貯金額の目標額と貯金額を表示。
-・1ヶ月の予算を管理し、使いすぎの場合は\n　画面の色を変えてお知らせ。
-・毎月のデータをクラウドに24ヶ月間保存して、\n　いつでも確認可能。
-                """,
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.left,
-        ),
-        "price": "¥100",
-        "isDisabled": isPremium == "premium",
-        "onTapSubscribe": isPremium == "premium"
-            ? null
-            : () => _subscribe(ref, "basic"),
-        "onTapUnsubscribe": isPremium == "basic"
-            ? () => _navigateToSubscriptionManagement()
-            : null,
+        "id": "basic",
+        "title": "ベーシックプラン",
+        "price": 100,
+        "description": """
+・各金額カードをタップしてメモや編集が可能
+・浪費スイッチでマイページに浪費額を表示
+・貯金額の目標設定、固定費に「貯金」と\n　入力して管理
+・月次データをクラウドに24ヶ月保存
+        """,
+        "isDev": false, // 開発中かどうか
       },
       {
-        "title": "premium",
-        "displayTitle": "プレミアムプラン",
-        "description": isPremium == "premium"
-            ? Text(
-          "現在加入中のプランです。",
-          style: TextStyle(color: Colors.red),
-        )
-            : Text(
-          """
-・浪費と支出の割合をグラフで確認可能。
-・店ごとや買い物ごとに支出額と浪費額を比較可能。
-・カメラでレシートから金額を自動入力。
-・コンシェルジュ機能で家計管理をサポート。
-                """,
-          style: TextStyle(fontSize: 14),
-          textAlign: TextAlign.left,
-        ),
-        "price": "¥300",
-        "isDisabled": isPremium == "basic",
-        "onTapSubscribe": isPremium == "basic"
-            ? null
-            : () => _subscribe(ref, "premium"),
-        "onTapUnsubscribe": isPremium == "premium"
-            ? () => _navigateToSubscriptionManagement()
-            : null,
+        "id": "premium",
+        "title": "プレミアムプラン",
+        "price": 300,
+        "description": """
+・収入/固定費/使った金額の種類をアイコンで選択
+・支出額全体を種類別にグラフ化して分析
+・カメラでレシート撮影して金額を自動入力
+・コンシェルジュ機能で家計管理をサポート
+        """,
+        "isDev": true,  // プレミアムはまだ開発中
       }
     ];
 
-    // プレミアムプランが優先される場合
-    if (isPremium == "premium") {
-      plans.sort((a, b) => a["title"] == "premium" ? -1 : 1);
-    }
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text("課金プラン"),
-      ),
+      appBar: AppBar(title: const Text("課金プラン")),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var plan in plans)
-              _buildPlanCard(
-                context,
-                ref,
-                title: plan["title"] as String,
-                displayTitle: plan["displayTitle"] as String,
-                description: plan["description"] as Widget,
-                isDisabled: plan["isDisabled"] as bool,
-                price: plan["price"] as String,
-                onTapSubscribe: plan["onTapSubscribe"] as VoidCallback?,
-                onTapUnsubscribe: plan["onTapUnsubscribe"] as VoidCallback?,
-              ),
+            for (final plan in plans) _buildPlanCard(context, ref,
+              planId:       plan["id"]     as String,
+              planTitle:    plan["title"]  as String,
+              price:        plan["price"]  as int,
+              description:  plan["description"] as String,
+              isDev:        plan["isDev"]  as bool,
+            ),
           ],
         ),
       ),
@@ -103,50 +62,94 @@ class SubscriptionPage extends ConsumerWidget {
   Widget _buildPlanCard(
       BuildContext context,
       WidgetRef ref, {
-        required String title,
-        required String displayTitle,
-        required Widget description,
-        required bool isDisabled,
-        required String price,
-        required VoidCallback? onTapSubscribe,
-        required VoidCallback? onTapUnsubscribe,
+        required String planId,
+        required String planTitle,
+        required int price,
+        required String description,
+        required bool isDev, // "開発中"フラグ
       }) {
-    final isPremium = ref.watch(subscriptionStatusProvider);
+    final currentPlan = ref.watch(subscriptionStatusProvider);
+    final bool isCurrent = (currentPlan == planId);
+
+    // カード色: 現在加入中のプランは背景色を変える
+    final cardColor = isCurrent ? Colors.lime[50] : null;
+
+    // ボタンの文言 / 無効化
+    String buttonLabel;
+    bool disabled = false;
+    if (isDev) {
+      // 開発中 → 「選択できません」
+      buttonLabel = "選択できません";
+      disabled = true;
+    } else {
+      // 開発中でない → basicプラン
+      if (isCurrent) {
+        // 現在加入中 => 「退会する」
+        buttonLabel = "退会する";
+      } else {
+        // 未加入 => 「選択する」
+        buttonLabel = "選択する";
+      }
+    }
 
     return Card(
-      color: isPremium == title ? Colors.lime[50] : null,
+      color: cardColor,
+      margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // タイトル
             Text(
-              displayTitle,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              planTitle,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
-            description,
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
+
+            // 「現在加入中のプランです」(赤)  or  空
+            if (isCurrent)
+              const Text(
+                "現在加入中のプランです。",
+                style: TextStyle(color: Colors.red),
+              ),
+            // 「(開発中)」(赤)  if isDev
+            if (isDev)
+              const Text(
+                "(現在開発中につき、近日リリース予定です。)",
+                style: TextStyle(color: Colors.red),
+              ),
+            const SizedBox(height: 8),
+
+            // 既存の案内文(通常表示)
             Text(
-              "$price/月",
-              style: TextStyle(
+              description,
+              style: const TextStyle(fontSize: 14),
+              textAlign: TextAlign.left,
+            ),
+            const SizedBox(height: 8),
+
+            // 価格
+            Text(
+              "¥${price.toString()} / 月",
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.green,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
+
+            // ボタン
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton(
-                onPressed: isDisabled
+                onPressed: disabled
                     ? null
-                    : (isPremium == title ? onTapUnsubscribe : onTapSubscribe),
-                child: Text(
-                  isDisabled
-                      ? "選択できません"
-                      : (isPremium == title ? "退会する" : "選択する"),
-                ),
+                    : (isCurrent
+                    ? () => _unsubscribePlan(ref, planId)
+                    : () => _subscribePlan(ref, planId)),
+                child: Text(buttonLabel),
               ),
             ),
           ],
@@ -155,20 +158,23 @@ class SubscriptionPage extends ConsumerWidget {
     );
   }
 
-  void _subscribe(WidgetRef ref, String plan) async {
+  void _subscribePlan(WidgetRef ref, String planId) async {
     try {
-      await ref.read(subscriptionStatusProvider.notifier).saveStatus(plan);
+      await ref.read(subscriptionStatusProvider.notifier).saveStatus(planId);
     } catch (e) {
-      UIUtils.showErrorDialog(ref.context, "課金プランの選択中にエラーが発生しました: $e");
+      UIUtils.showErrorDialog(ref.context, "課金プラン選択中にエラーが発生: $e");
     }
   }
 
+  void _unsubscribePlan(WidgetRef ref, String planId) {
+    // 「退会する」 => ストアのサブスク管理ページへ誘導
+    _navigateToSubscriptionManagement();
+  }
 
   Future<void> _navigateToSubscriptionManagement() async {
     final url = Platform.isIOS
         ? "https://apps.apple.com/account/subscriptions"
         : "https://play.google.com/store/account/subscriptions";
-
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
