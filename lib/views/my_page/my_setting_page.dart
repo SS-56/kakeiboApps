@@ -28,19 +28,6 @@ class MySettingPage extends ConsumerWidget {
             _buildSubscribedPlanCard(context, subscriptionStatus),
             const SizedBox(height: 16),
 
-            // 設定ページから移動してきた「全データ消去」(Card)
-            Card(
-              child: ListTile(
-                title: const Text("全データ消去"),
-                subtitle: const Text("すべてのデータを消去して初期状態に戻します。"),
-                onTap: () {
-                  int newDay = 1;
-                  _confirmResetData(context, ref, newDay);
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-
             // 利用規約Card
             Card(
               child: ListTile(
@@ -56,6 +43,18 @@ class MySettingPage extends ConsumerWidget {
                 title: const Text("プライバシーポリシー"),
                 onTap: () {
                   _showPrivacyPolicy(context);
+                },
+              ),
+            ),
+            const SizedBox(height: 32),
+            // 設定ページから移動してきた「全データ消去」(Card)
+            Card(
+              child: ListTile(
+                title: const Text("全データ消去"),
+                subtitle: const Text("すべてのデータを消去して初期状態に戻します。"),
+                onTap: () {
+                  int newDay = 1;
+                  _confirmResetData(context, ref, newDay);
                 },
               ),
             ),
@@ -104,7 +103,7 @@ class MySettingPage extends ConsumerWidget {
                     MaterialPageRoute(builder: (context) => SubscriptionPage()),
                   );
                 },
-                child: const Text("課金プランを見る"),
+                child: Text("課金プランを見る", style: TextStyle(color: Colors.cyan[800]),),
               ),
             ),
           ],

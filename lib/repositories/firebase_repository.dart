@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
@@ -141,6 +142,16 @@ class FirebaseRepository {
       result.add(data);
     }
     return result;
+  }
+  Future<UserCredential?> signInWithApple() async {
+    final appleProvider = AppleAuthProvider();
+    try {
+      final userCredential = await FirebaseAuth.instance.signInWithProvider(appleProvider);
+      return userCredential;
+    } catch (e) {
+      print("Appleでの認証エラー: $e");
+      rethrow;
+    }
   }
 }
 

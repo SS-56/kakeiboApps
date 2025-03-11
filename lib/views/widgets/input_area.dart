@@ -44,18 +44,42 @@ class InputArea extends ConsumerWidget {
                   // ★ 課金プラン: 「毎月◯日」Picker
                   final pickedDay = await _pickDayOfMonthCupertino(context, selectedDate);
                   if (pickedDay != null) {
+                    // ◎ ここで “pickedDay” が “開始日（startDay）” より小さいなら「翌月」扱いにする
+                    final now = DateTime.now();
+                    final startDay = ref.read(startDayProvider); // 例: 16
+                    final currentYear = selectedDate.year;
+                    final currentMonth = selectedDate.month;
+
+                    // ▼ デフォルトは「同じ月」
+                    int newYear = currentYear;
+                    int newMonth = currentMonth;
+
+                    // ◎ pickedDay < startDay ⇒ 翌月へ
+                    if (pickedDay < startDay) {
+                      newMonth += 1;
+                      if (newMonth > 12) {
+                        newMonth = 1;
+                        newYear += 1;
+                      }
+                    }
+
+                    // newDate => 月をずらしたり、dayをpickedDayに更新
                     final newDate = DateTime(
-                      selectedDate.year,
-                      selectedDate.month,
+                      newYear,
+                      newMonth,
                       pickedDay,
                       now.hour,
                       now.minute,
                       now.second,
                       now.millisecond,
+                      now.microsecond,
                     );
+
+                    // ▼ 既存の判定ロジックをそのまま
+                    final startDate = DateTime(now.year, now.month, ref.read(startDayProvider));
                     if (newDate.isBefore(startDate)) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('開始日より前の日付は入力できません')),
+                        const SnackBar(content: Text('開始日より前の日付は入力できません')),
                       );
                     } else {
                       onDateChange(newDate);
@@ -70,9 +94,11 @@ class InputArea extends ConsumerWidget {
                     lastDate: DateTime(2100),
                   );
                   if (pickedDate != null) {
+                    final now = DateTime.now();
+                    final startDate = DateTime(now.year, now.month, ref.read(startDayProvider));
                     if (pickedDate.isBefore(startDate)) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('開始日より前の日付は入力できません')),
+                        const SnackBar(content: Text('開始日より前の日付は入力できません')),
                       );
                     } else {
                       onDateChange(pickedDate);
@@ -122,7 +148,7 @@ class InputArea extends ConsumerWidget {
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: '金額'),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}$')),
+                FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d{0,2}$')),
               ],
             ),
           ),

@@ -220,7 +220,7 @@ class HomePage extends ConsumerWidget {
       onAdd: () {
         final title = titleCtrl.text.trim();
         final amount = double.tryParse(amountCtrl.text);
-        if (title.isEmpty || amount == null || amount <= 0) {
+        if (title.isEmpty || amount == null /* || amount <= 0 */) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('すべての項目を入力してください')),
           );

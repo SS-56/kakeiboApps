@@ -320,12 +320,16 @@ class SettingsPage extends ConsumerWidget {
 
   void _selectStartDay(BuildContext context, WidgetRef ref) async {
     final now = DateTime.now();
-    final selectedDay = ref.read(startDayProvider);
+    final selectedDay = ref.read(startDayProvider);  // 例: 16
+
+    // ここが「家計簿開始日の当月の日付」として使われる
     final initialDate = DateTime(now.year, now.month, selectedDay);
+
     final firstDate = DateTime(now.year, now.month, 1);
     final lastDay = DateTime(now.year, now.month + 1, 0).day;
     final lastDate = DateTime(now.year, now.month, lastDay);
 
+    // iOS ドラム式 or カレンダーピッカーで日付を選択
     final pickedDate = await showMyDatePicker(
       context: context,
       initialDate: initialDate,
@@ -334,17 +338,96 @@ class SettingsPage extends ConsumerWidget {
     );
 
     if (pickedDate != null) {
-      if (pickedDate.day != selectedDay) {
-        _updateStartDay(ref, pickedDate.day);
+      // もし 「pickedDate」が「開始日より前」なら、警告ダイアログを復活
+      final isBeforeStart = pickedDate.isBefore(initialDate);
+
+      if (isBeforeStart) {
+        _showEarlierDateConfirmDialog(
+          context,
+          ref,
+          pickedDate.day,
+        );
       } else {
-        print("日付に変更はありません");
+        // それ以外の場合はそのまま反映
+        if (pickedDate.day != selectedDay) {
+          _updateStartDay(ref, pickedDate.day);
+        } else {
+          print("日付に変更はありません");
+        }
       }
     } else {
       print("ユーザーがキャンセルしました");
     }
   }
 
+  void _showEarlierDateConfirmDialog(BuildContext context, WidgetRef ref, int newDay) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("開始日を変更します"),
+          content: const Text("この日付を選択すると、開始日より前のデータが消去されます。\nよろしいですか？"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("キャンセル"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // OKが押されたらデータ消去を含む処理を続行
+                _updateStartDay(ref, newDay);
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _updateStartDay(WidgetRef ref, int newDay) {
+    final oldDay = ref.read(startDayProvider); // 現在の開始日
+    print("開始日が更新されます: old=$oldDay → new=$newDay");
+
+    // ★ もし newDay が oldDay より小さい => 「開始日より前になる」 => 確認ダイアログを出す
+    if (newDay < oldDay) {
+      _showConfirmEarlierStartDay(ref, newDay);
+    } else {
+      // ★ 従来の処理: そのまま実行 (データフィルタなど)
+      _applyNewStartDay(ref, newDay);
+    }
+  }
+
+  /// ★ 確認ダイアログ: 「開始日が前倒しされるので、既存データが消えるが本当によいか？」
+  void _showConfirmEarlierStartDay(WidgetRef ref, int newDay) {
+    showDialog(
+      context: ref.context, // ConsumerWidget なら ref.context で取得可能
+      builder: (_) => AlertDialog(
+        title: const Text("開始日より前の日付を選択しました"),
+        content: const Text(
+          "この日付を選ぶと、開始日以降のデータより前の部分が消去される可能性があります。\nよろしいですか？",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ref.context),
+            child: const Text("キャンセル"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ref.context);
+              // ★ OKの場合 => 従来の処理を実行
+              _applyNewStartDay(ref, newDay);
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ★ 従来の処理を分離: (データをフィルタして実質消去する可能性がある箇所)
+  void _applyNewStartDay(WidgetRef ref, int newDay) {
     ref.read(startDayProvider.notifier).setStartDay(newDay);
     print("開始日が更新されました: $newDay 日");
 
@@ -352,15 +435,10 @@ class SettingsPage extends ConsumerWidget {
     final startDate = DateTime(now.year, now.month, newDay);
     final endDate = calculateEndDate(startDate);
 
-    ref
-        .read(expenseViewModelProvider.notifier)
-        .filterByDateRange(startDate, endDate);
-    ref
-        .read(fixedCostViewModelProvider.notifier)
-        .filterByDateRange(startDate, endDate);
-    ref
-        .read(incomeViewModelProvider.notifier)
-        .filterByDateRange(startDate, endDate);
+    // ★ 以下のフィルタリングにより「開始日より前のデータ」は実質的に除外される
+    ref.read(expenseViewModelProvider.notifier).filterByDateRange(startDate, endDate);
+    ref.read(fixedCostViewModelProvider.notifier).filterByDateRange(startDate, endDate);
+    ref.read(incomeViewModelProvider.notifier).filterByDateRange(startDate, endDate);
 
     final budgetPeriodMessage =
         "${startDate.month}月${startDate.day}日から${endDate.month}月${endDate.day}日までを管理します";
@@ -368,6 +446,7 @@ class SettingsPage extends ConsumerWidget {
 
     print("管理期間メッセージ: $budgetPeriodMessage");
   }
+
 
   // 「種類を追加」 => プレミアムのみ
   void _addType(BuildContext context, WidgetRef ref) {

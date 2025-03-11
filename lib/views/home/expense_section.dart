@@ -99,6 +99,7 @@ class ExpenseSection extends StatelessWidget {
             itemCount: sortedExpenses.length,
             itemBuilder: (context, index) {
               final expense = sortedExpenses[index];
+              final isNegative = (expense.amount < 0);
               return Dismissible(
                 key: ValueKey(expense),
                 direction: DismissDirection.endToStart,
@@ -138,7 +139,7 @@ class ExpenseSection extends StatelessWidget {
                               alignment: Alignment.centerRight,
                               child: Text(
                                 expense.amount.toStringAsFixed(0),
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(color: isNegative ? Colors.red : Colors.black),
                               ),
                             ),
                             const SizedBox(width: 4),

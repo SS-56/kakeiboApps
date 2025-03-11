@@ -69,7 +69,7 @@ class MedalViewModel extends StateNotifier<List<Medal>> {
     //   - 貯金を1円も減らさない => newSaving == oldSaving
     //   - ratio >= 0.15
     if (newSaving == oldSaving && ratio >= 0.15) {
-      _addMedal(
+      addMedal(
         Medal(
           type: MedalType.gold,
           description: "貯金を減らさず総額15%を切らなかった",
@@ -88,7 +88,7 @@ class MedalViewModel extends StateNotifier<List<Medal>> {
         savingRatio>=0.50 && savingRatio<0.99 &&
         ratio>=0.10
     ) {
-      _addMedal(
+      addMedal(
         Medal(
           type: MedalType.silver,
           description: "貯金を一部使っても10%切らなかった",
@@ -102,7 +102,7 @@ class MedalViewModel extends StateNotifier<List<Medal>> {
     //   - newSaving == 0
     //   - ratio>=0.05
     if (newSaving == 0 && ratio>=0.05) {
-      _addMedal(
+      addMedal(
         Medal(
           type: MedalType.bronze,
           description: "貯金0でも5%切らなかった",
@@ -116,7 +116,7 @@ class MedalViewModel extends StateNotifier<List<Medal>> {
   }
 
   /// 内部メソッド: stateにメダルを追加し、保存
-  void _addMedal(Medal medal) {
+  void addMedal(Medal medal) {
     state = [...state, medal];
     saveMedals();
   }
