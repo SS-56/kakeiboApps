@@ -166,7 +166,7 @@ class SettingsPage extends ConsumerWidget {
             // 「種類を追加」 => プレミアムのみ
             ListTile(
               title: Text(
-                "種類を追加",
+                "種類をアイコン化する",
                 style: TextStyle(
                   color: (subscriptionStatus == 'premium')
                       ? Colors.black
@@ -174,17 +174,14 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
               subtitle: types.isEmpty
-                  ? Padding(
-                padding: const EdgeInsets.only(left: 8.0),
-                child: Text(
-                  "追加された種類はありません",
-                  style: TextStyle(
-                    color: (subscriptionStatus == 'premium')
-                        ? Colors.black
-                        : Colors.grey,
-                  ),
-                ),
-              )
+                  ? Text(
+                    "アイコン表示に切り替える",
+                    style: TextStyle(
+                      color: (subscriptionStatus == 'premium')
+                          ? Colors.black
+                          : Colors.grey,
+                    ),
+                  )
                   : Padding(
                 padding: const EdgeInsets.only(left: 8.0),
                 child: Column(
@@ -464,7 +461,7 @@ class SettingsPage extends ConsumerWidget {
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: const Text("種類を追加"),
+          title: const Text("種類をアイコン表示する"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
