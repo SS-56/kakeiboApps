@@ -37,164 +37,170 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
           },
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Consumer(
-              builder: (context, ref, _) {
-                // 並び替え処理
-                final fixedCosts = ref.watch(fixedCostViewModelProvider);
-                final isAscending = ref.watch(sortOrderProvider);
-                final sortedFixedCosts = List.from(fixedCosts)
-                  ..sort((a, b) => isAscending
-                      ? a.date.compareTo(b.date) // 昇順
-                      : b.date.compareTo(a.date)); // 降順
-                return ListView.builder(
-                  itemCount: sortedFixedCosts.length,
-                  itemBuilder: (context, index) {
-                    final fixedCost = sortedFixedCosts[index];
-                    return Dismissible(
-                      key: ValueKey(fixedCost),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: Icon(Icons.delete, color: Colors.white),
-                      ),
-                      onDismissed: (direction) {
-                        ref
-                            .read(fixedCostViewModelProvider.notifier)
-                            .removeItem(fixedCost);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('${fixedCost.title} が削除されました')),
-                        );
-                      },
-                      child: Card(
-                        color: Color.fromARGB(255, 255, 255, 255),
-                        margin:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        child: ListTile(
-                          leading: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (settings.useCalendarForIncomeFixed)
-                              // カレンダーモード → YYYY/MM/DD
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: Consumer(
+                builder: (context, ref, _) {
+                  // 並び替え処理
+                  final fixedCosts = ref.watch(fixedCostViewModelProvider);
+                  final isAscending = ref.watch(sortOrderProvider);
+                  final sortedFixedCosts = List.from(fixedCosts)
+                    ..sort((a, b) => isAscending
+                        ? a.date.compareTo(b.date) // 昇順
+                        : b.date.compareTo(a.date)); // 降順
+                  return ListView.builder(
+                    itemCount: sortedFixedCosts.length,
+                    itemBuilder: (context, index) {
+                      final fixedCost = sortedFixedCosts[index];
+                      return Dismissible(
+                        key: ValueKey(fixedCost),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.symmetric(horizontal: 20),
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) {
+                          ref
+                              .read(fixedCostViewModelProvider.notifier)
+                              .removeItem(fixedCost);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text('${fixedCost.title} が削除されました')),
+                          );
+                        },
+                        child: Card(
+                          color: Color.fromARGB(255, 255, 255, 255),
+                          margin:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          child: ListTile(
+                            leading: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (settings.useCalendarForIncomeFixed)
+                                // カレンダーモード → YYYY/MM/DD
+                                  Text(
+                                    '${fixedCost.date.year}/${fixedCost.date.month}/${fixedCost.date.day}',
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey),
+                                  )
+                                else
+                                // 毎月◯日モード
+                                  Text(
+                                    '毎月${fixedCost.date.day}日',
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey),
+                                  ),
                                 Text(
-                                  '${fixedCost.date.year}/${fixedCost.date.month}/${fixedCost.date.day}',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey),
-                                )
-                              else
-                              // 毎月◯日モード
-                                Text(
-                                  '毎月${fixedCost.date.day}日',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey),
-                                ),
-                              Text(
-                                fixedCost.title,
-                                style: TextStyle(fontSize: 16),
-                              ), // 種類
-                            ],
-                          ),
-                          title: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 40.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Container(
-                                    width: 80,
-                                    alignment: Alignment.centerRight,
-                                    child: Text(
-                                      fixedCost.amount.toStringAsFixed(0),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
+                                  fixedCost.title,
+                                  style: TextStyle(fontSize: 16),
+                                ), // 種類
+                              ],
+                            ),
+                            title: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 40.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Container(
+                                      width: 80,
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        fixedCost.amount.toStringAsFixed(0),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text("円"),
-                                ],
+                                    const SizedBox(width: 4),
+                                    const Text("円"),
+                                  ],
+                                ),
                               ),
                             ),
+                            trailing: isPaidUser
+                                ? IconButton(
+                                    icon: const Icon(Icons.settings, color: Colors.black,),
+                                    onPressed: () {
+                                      _editFixed(context, ref, fixedCost);
+                                    },
+                                  )
+                                : null,
                           ),
-                          trailing: isPaidUser
-                              ? IconButton(
-                                  icon: const Icon(Icons.settings, color: Colors.black,),
-                                  onPressed: () {
-                                    _editFixed(context, ref, fixedCost);
-                                  },
-                                )
-                              : null,
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-          // カレンダー表示部分
-          InputArea(
-            titleController: titleController,
-            amountController: amountController,
-            selectedDate: fixedCostsDate,
-            onDateChange: (newDate) {
-              ref.read(fixedCostsDateProvider.notifier).state = newDate;
-            },
-            onAdd: () {
-              final selectedDate =
-                  ref.read(fixedCostsDateProvider); // ここでselectedDateを取得
-              final now = DateTime.now();
-              final updatedDate = DateTime(
-                selectedDate.year,
-                selectedDate.month,
-                selectedDate.day,
-                now.hour,
-                now.minute,
-                now.second,
-                now.millisecond,
-              );
-
-              final title = titleController.text.trim();
-              final amount = double.tryParse(amountController.text);
-
-              final int startDay = ref.read(startDayProvider);
-              final DateTime startDate =
-                  DateTime(now.year, now.month, startDay);
-
-              // 開始日前のデータかを確認
-              if (updatedDate.isBefore(startDate)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('全ての項目を入力してください。')),
+            // カレンダー表示部分
+            InputArea(
+              titleController: titleController,
+              amountController: amountController,
+              selectedDate: fixedCostsDate,
+              onDateChange: (newDate) {
+                ref.read(fixedCostsDateProvider.notifier).state = newDate;
+              },
+              onAdd: () {
+                final selectedDate =
+                    ref.read(fixedCostsDateProvider); // ここでselectedDateを取得
+                final now = DateTime.now();
+                final updatedDate = DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day,
+                  now.hour,
+                  now.minute,
+                  now.second,
+                  now.millisecond,
                 );
-                return; // 処理を中断
-              }
 
-              if (title.isNotEmpty && amount != null) {
-                // `addItem`メソッドでデータを追加
-                ref.read(fixedCostViewModelProvider.notifier).addItem(
-                      FixedCost(
-                        id: Uuid().v4(),
-                        title: title,
-                        amount: amount,
-                        date: updatedDate,
-                      ),
-                    );
+                final title = titleController.text.trim();
+                final amount = double.tryParse(amountController.text);
 
-                titleController.clear();
-                amountController.clear();
-                ref.read(fixedCostsDateProvider.notifier).state =
-                    DateTime.now(); // 日付リセット
-              }
-            },
-            useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
-          ),
-        ],
+                final int startDay = ref.read(startDayProvider);
+                final DateTime startDate =
+                    DateTime(now.year, now.month, startDay);
+
+                // 開始日前のデータかを確認
+                if (updatedDate.isBefore(startDate)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('全ての項目を入力してください。')),
+                  );
+                  return; // 処理を中断
+                }
+
+                if (title.isNotEmpty && amount != null) {
+                  // `addItem`メソッドでデータを追加
+                  ref.read(fixedCostViewModelProvider.notifier).addItem(
+                        FixedCost(
+                          id: Uuid().v4(),
+                          title: title,
+                          amount: amount,
+                          date: updatedDate,
+                        ),
+                      );
+
+                  titleController.clear();
+                  amountController.clear();
+                  ref.read(fixedCostsDateProvider.notifier).state =
+                      DateTime.now(); // 日付リセット
+                }
+              },
+              useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
+            ),
+          ],
+        ),
       ),
     );
   }

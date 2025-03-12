@@ -37,159 +37,165 @@ class FullScreenIncomeSection extends ConsumerWidget {
           },
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Consumer(
-              builder: (context, ref, _) {
-                // 並び替え処理
-                final incomes = ref.watch(incomeViewModelProvider);
-                final isAscending = ref.watch(sortOrderProvider);
-                final sortedIncomes = List.from(incomes)
-                  ..sort((a, b) => isAscending
-                      ? a.date.compareTo(b.date) // 昇順
-                      : b.date.compareTo(a.date)); // 降順
-                return ListView.builder(
-                  itemCount: sortedIncomes.length,
-                  itemBuilder: (context, index) {
-                    final income = sortedIncomes[index];
-                    return Dismissible(
-                      key: ValueKey(income),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: Icon(Icons.delete, color: Colors.white),
-                      ),
-                      onDismissed: (direction) {
-                        // 削除処理
-                        ref
-                            .read(incomeViewModelProvider.notifier)
-                            .removeItem(income);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${income.title} が削除されました')),
-                        );
-                      },
-                      child: Card(
-                        color: Color.fromARGB(255, 255, 255, 255),
-                        margin:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        child: ListTile(
-                          leading: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (settings.useCalendarForIncomeFixed)
-                                // カレンダーモード → YYYY/MM/DD
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: Consumer(
+                builder: (context, ref, _) {
+                  // 並び替え処理
+                  final incomes = ref.watch(incomeViewModelProvider);
+                  final isAscending = ref.watch(sortOrderProvider);
+                  final sortedIncomes = List.from(incomes)
+                    ..sort((a, b) => isAscending
+                        ? a.date.compareTo(b.date) // 昇順
+                        : b.date.compareTo(a.date)); // 降順
+                  return ListView.builder(
+                    itemCount: sortedIncomes.length,
+                    itemBuilder: (context, index) {
+                      final income = sortedIncomes[index];
+                      return Dismissible(
+                        key: ValueKey(income),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.symmetric(horizontal: 20),
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) {
+                          // 削除処理
+                          ref
+                              .read(incomeViewModelProvider.notifier)
+                              .removeItem(income);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${income.title} が削除されました')),
+                          );
+                        },
+                        child: Card(
+                          color: Color.fromARGB(255, 255, 255, 255),
+                          margin:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          child: ListTile(
+                            leading: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (settings.useCalendarForIncomeFixed)
+                                  // カレンダーモード → YYYY/MM/DD
+                                  Text(
+                                    '${income.date.year}/${income.date.month}/${income.date.day}',
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey),
+                                  )
+                                else
+                                  // 毎月◯日モード
+                                  Text(
+                                    '毎月${income.date.day}日',
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey),
+                                  ),
                                 Text(
-                                  '${income.date.year}/${income.date.month}/${income.date.day}',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey),
-                                )
-                              else
-                                // 毎月◯日モード
-                                Text(
-                                  '毎月${income.date.day}日',
-                                  style: TextStyle(
-                                      fontSize: 12, color: Colors.grey),
+                                  income.title, // 種類
+                                  style: TextStyle(fontSize: 16),
                                 ),
-                              Text(
-                                income.title, // 種類
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ],
-                          ),
-                          title: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 40.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Container(
-                                    width: 80,
-                                    alignment: Alignment.centerRight,
-                                    child: Text(
-                                      income.amount.toStringAsFixed(0),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
+                              ],
+                            ),
+                            title: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 40.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Container(
+                                      width: 80,
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        income.amount.toStringAsFixed(0),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text("円")
-                                ],
+                                    const SizedBox(width: 4),
+                                    const Text("円")
+                                  ],
+                                ),
                               ),
                             ),
+                            trailing: isPaidUser
+                                ? IconButton(
+                                    icon:
+                                        Icon(Icons.settings, color: Colors.black),
+                                    onPressed: () =>
+                                        _editIncome(context, ref, income),
+                                  )
+                                : null,
                           ),
-                          trailing: isPaidUser
-                              ? IconButton(
-                                  icon:
-                                      Icon(Icons.settings, color: Colors.black),
-                                  onPressed: () =>
-                                      _editIncome(context, ref, income),
-                                )
-                              : null,
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-          InputArea(
-            titleController: titleController,
-            amountController: amountController,
-            selectedDate: incomeDate,
-            onDateChange: (newDate) {
-              ref.read(incomeDateProvider.notifier).state = newDate;
-            },
-            onAdd: () {
-              final selectedDate = ref.read(incomeDateProvider);
-              final now = DateTime.now();
-              final updatedDate = DateTime(
-                selectedDate.year,
-                selectedDate.month,
-                selectedDate.day,
-                now.hour,
-                now.minute,
-                now.second,
-                now.millisecond,
-              );
-              final title = titleController.text.trim();
-              final amount = double.tryParse(amountController.text);
-
-              final int startDay = ref.read(startDayProvider);
-              final DateTime startDate =
-                  DateTime(now.year, now.month, startDay);
-
-              // 開始日前のデータかを確認
-              if (updatedDate.isBefore(startDate)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('全ての項目を入力してください。')),
+            InputArea(
+              titleController: titleController,
+              amountController: amountController,
+              selectedDate: incomeDate,
+              onDateChange: (newDate) {
+                ref.read(incomeDateProvider.notifier).state = newDate;
+              },
+              onAdd: () {
+                final selectedDate = ref.read(incomeDateProvider);
+                final now = DateTime.now();
+                final updatedDate = DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day,
+                  now.hour,
+                  now.minute,
+                  now.second,
+                  now.millisecond,
                 );
-                return; // 処理を中断
-              }
+                final title = titleController.text.trim();
+                final amount = double.tryParse(amountController.text);
 
-              if (title.isNotEmpty && amount != null) {
-                ref.read(incomeViewModelProvider.notifier).addItem(
-                      Income(
-                        id: Uuid().v4(),
-                        title: title,
-                        amount: amount,
-                        date: updatedDate,
-                      ),
-                    );
-                titleController.clear();
-                amountController.clear();
-                ref.read(incomeDateProvider.notifier).state =
-                    DateTime.now(); // 日付をリセット
-              }
-            },
-            useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
-          ),
-        ],
+                final int startDay = ref.read(startDayProvider);
+                final DateTime startDate =
+                    DateTime(now.year, now.month, startDay);
+
+                // 開始日前のデータかを確認
+                if (updatedDate.isBefore(startDate)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('全ての項目を入力してください。')),
+                  );
+                  return; // 処理を中断
+                }
+
+                if (title.isNotEmpty && amount != null) {
+                  ref.read(incomeViewModelProvider.notifier).addItem(
+                        Income(
+                          id: Uuid().v4(),
+                          title: title,
+                          amount: amount,
+                          date: updatedDate,
+                        ),
+                      );
+                  titleController.clear();
+                  amountController.clear();
+                  ref.read(incomeDateProvider.notifier).state =
+                      DateTime.now(); // 日付をリセット
+                }
+              },
+              useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
+            ),
+          ],
+        ),
       ),
     );
   }

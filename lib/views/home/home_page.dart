@@ -163,37 +163,43 @@ class HomePage extends ConsumerWidget {
         )
             : null,
       ),
-      body: Column(
-        children: [
-          // 総収入
-          CommonSectionWidget(
-            title: '総収入',
-            total: totalIncome,
-            isExpanded: ref.watch(incomeExpandProvider),
-            onExpand: () {
-              ref.read(incomeExpandProvider.notifier).toggle();
-            },
-            fullScreenWidget: const FullScreenIncomeSection(),
-          ),
-          const Divider(height: 20, thickness: 2, color: Colors.cyan,),
-          // 固定費
-          CommonSectionWidget(
-            title: '固定費',
-            total: totalFixed,
-            isExpanded: ref.watch(fixedCostsExpandProvider),
-            onExpand: () {
-              ref.read(fixedCostsExpandProvider.notifier).toggle();
-            },
-            fullScreenWidget: const FullScreenFixedCostsSection(),
-          ),
-          const Divider(height: 20, thickness: 2, color: Colors.cyan,),
-          // 使った金額
-          Expanded(
-            child: ExpenseSection(ref: ref),
-          ),
-          // 下部: input_area を使った使った金額の追加
-          _buildExpenseInputArea(context, ref, remainingBalance, isPaidUser, fixedCosts),
-        ],
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+      },
+        child: Column(
+          children: [
+            // 総収入
+            CommonSectionWidget(
+              title: '総収入',
+              total: totalIncome,
+              isExpanded: ref.watch(incomeExpandProvider),
+              onExpand: () {
+                ref.read(incomeExpandProvider.notifier).toggle();
+              },
+              fullScreenWidget: const FullScreenIncomeSection(),
+            ),
+            const Divider(height: 20, thickness: 2, color: Colors.cyan,),
+            // 固定費
+            CommonSectionWidget(
+              title: '固定費',
+              total: totalFixed,
+              isExpanded: ref.watch(fixedCostsExpandProvider),
+              onExpand: () {
+                ref.read(fixedCostsExpandProvider.notifier).toggle();
+              },
+              fullScreenWidget: const FullScreenFixedCostsSection(),
+            ),
+            const Divider(height: 20, thickness: 2, color: Colors.cyan,),
+            // 使った金額
+            Expanded(
+              child: ExpenseSection(ref: ref),
+            ),
+            // 下部: input_area を使った使った金額の追加
+            _buildExpenseInputArea(context, ref, remainingBalance, isPaidUser, fixedCosts),
+          ],
+        ),
       ),
     );
   }
