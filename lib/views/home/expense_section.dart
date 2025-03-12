@@ -91,7 +91,7 @@ class ExpenseSection extends StatelessWidget {
             ],
           ),
         ),
-        const Divider(height: 1, color: Colors.cyan,),
+        const Divider(height: 20, thickness: 2, color: Colors.cyan,),
 
         // 支出リスト
         Expanded(
@@ -110,9 +110,25 @@ class ExpenseSection extends StatelessWidget {
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 onDismissed: (direction) {
+                  // ★ 削除対象を退避
+                  final removedExpense = expense;
                   ref
                       .read(expenseViewModelProvider.notifier)
                       .removeItem(expense);
+                  // ★ “元に戻す”用にSnackBarを表示
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${removedExpense.title} を削除しました。'),
+                      duration: const Duration(seconds: 3), // 3秒間だけ表示
+                      action: SnackBarAction(
+                        label: '元に戻す',
+                        onPressed: () {
+                          // ★ 削除を取り消して再度リストに追加
+                          ref.read(expenseViewModelProvider.notifier).addItem(removedExpense);
+                        },
+                      ),
+                    ),
+                  );
                 },
                 child: Card(
                   color: Color.fromARGB(255, 255, 255, 255),

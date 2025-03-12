@@ -68,13 +68,25 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                           child: Icon(Icons.delete, color: Colors.white),
                         ),
                         onDismissed: (direction) {
+                          final removedFixedCost = fixedCost;
                           ref
                               .read(fixedCostViewModelProvider.notifier)
                               .removeItem(fixedCost);
+                          // ★ “元に戻す”用にSnackBarを表示
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text('${fixedCost.title} が削除されました')),
+                              content: Text('${removedFixedCost.title} を削除しました。'),
+                              duration: const Duration(seconds: 3), // 3秒間だけ表示
+                              action: SnackBarAction(
+                                label: '元に戻す',
+                                onPressed: () {
+                                  // ★ 削除を取り消して再度リストに追加
+                                  ref.read(fixedCostViewModelProvider.notifier).addItem(removedFixedCost);
+                                },
+                              ),
+                            ),
                           );
+
                         },
                         child: Card(
                           color: Color.fromARGB(255, 255, 255, 255),
@@ -144,60 +156,63 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
               ),
             ),
             // カレンダー表示部分
-            InputArea(
-              titleController: titleController,
-              amountController: amountController,
-              selectedDate: fixedCostsDate,
-              onDateChange: (newDate) {
-                ref.read(fixedCostsDateProvider.notifier).state = newDate;
-              },
-              onAdd: () {
-                final selectedDate =
-                    ref.read(fixedCostsDateProvider); // ここでselectedDateを取得
-                final now = DateTime.now();
-                final updatedDate = DateTime(
-                  selectedDate.year,
-                  selectedDate.month,
-                  selectedDate.day,
-                  now.hour,
-                  now.minute,
-                  now.second,
-                  now.millisecond,
-                );
-
-                final title = titleController.text.trim();
-                final amount = double.tryParse(amountController.text);
-
-                final int startDay = ref.read(startDayProvider);
-                final DateTime startDate =
-                    DateTime(now.year, now.month, startDay);
-
-                // 開始日前のデータかを確認
-                if (updatedDate.isBefore(startDate)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('全ての項目を入力してください。')),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: InputArea(
+                titleController: titleController,
+                amountController: amountController,
+                selectedDate: fixedCostsDate,
+                onDateChange: (newDate) {
+                  ref.read(fixedCostsDateProvider.notifier).state = newDate;
+                },
+                onAdd: () {
+                  final selectedDate =
+                      ref.read(fixedCostsDateProvider); // ここでselectedDateを取得
+                  final now = DateTime.now();
+                  final updatedDate = DateTime(
+                    selectedDate.year,
+                    selectedDate.month,
+                    selectedDate.day,
+                    now.hour,
+                    now.minute,
+                    now.second,
+                    now.millisecond,
                   );
-                  return; // 処理を中断
-                }
 
-                if (title.isNotEmpty && amount != null) {
-                  // `addItem`メソッドでデータを追加
-                  ref.read(fixedCostViewModelProvider.notifier).addItem(
-                        FixedCost(
-                          id: Uuid().v4(),
-                          title: title,
-                          amount: amount,
-                          date: updatedDate,
-                        ),
-                      );
+                  final title = titleController.text.trim();
+                  final amount = double.tryParse(amountController.text);
 
-                  titleController.clear();
-                  amountController.clear();
-                  ref.read(fixedCostsDateProvider.notifier).state =
-                      DateTime.now(); // 日付リセット
-                }
-              },
-              useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
+                  final int startDay = ref.read(startDayProvider);
+                  final DateTime startDate =
+                      DateTime(now.year, now.month, startDay);
+
+                  // 開始日前のデータかを確認
+                  if (updatedDate.isBefore(startDate)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('全ての項目を入力してください。')),
+                    );
+                    return; // 処理を中断
+                  }
+
+                  if (title.isNotEmpty && amount != null) {
+                    // `addItem`メソッドでデータを追加
+                    ref.read(fixedCostViewModelProvider.notifier).addItem(
+                          FixedCost(
+                            id: Uuid().v4(),
+                            title: title,
+                            amount: amount,
+                            date: updatedDate,
+                          ),
+                        );
+
+                    titleController.clear();
+                    amountController.clear();
+                    ref.read(fixedCostsDateProvider.notifier).state =
+                        DateTime.now(); // 日付リセット
+                  }
+                },
+                useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
+              ),
             ),
           ],
         ),

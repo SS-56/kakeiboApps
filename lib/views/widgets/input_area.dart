@@ -134,7 +134,14 @@ class InputArea extends ConsumerWidget {
             flex: 2,
             child: TextField(
               controller: titleController,
-              decoration: const InputDecoration(labelText: '種類'),
+              decoration: InputDecoration(
+                labelText: '種類',
+                floatingLabelStyle: TextStyle(color: Colors.cyan[800]),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.cyan),
+                ),
+              ),
+              cursorColor: Colors.cyan[800],
             ),
           ),
           const SizedBox(width: 8),
@@ -146,7 +153,14 @@ class InputArea extends ConsumerWidget {
               controller: amountController,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: '金額'),
+              decoration: InputDecoration(
+                labelText: '金額',
+                floatingLabelStyle: TextStyle(color: Colors.cyan[800]),
+                focusedBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.cyan),
+                ),
+              ),
+              cursorColor: Colors.cyan,
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d{0,2}$')),
               ],

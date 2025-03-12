@@ -68,12 +68,24 @@ class FullScreenIncomeSection extends ConsumerWidget {
                           child: Icon(Icons.delete, color: Colors.white),
                         ),
                         onDismissed: (direction) {
+                          final removedIncome = income;
                           // 削除処理
                           ref
                               .read(incomeViewModelProvider.notifier)
                               .removeItem(income);
+                          // ★ “元に戻す”用にSnackBarを表示
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${income.title} が削除されました')),
+                            SnackBar(
+                              content: Text('${removedIncome.title} を削除しました。'),
+                              duration: const Duration(seconds: 3), // 3秒間だけ表示
+                              action: SnackBarAction(
+                                label: '元に戻す',
+                                onPressed: () {
+                                  // ★ 削除を取り消して再度リストに追加
+                                  ref.read(incomeViewModelProvider.notifier).addItem(removedIncome);
+                                },
+                              ),
+                            ),
                           );
                         },
                         child: Card(
@@ -143,56 +155,59 @@ class FullScreenIncomeSection extends ConsumerWidget {
                 },
               ),
             ),
-            InputArea(
-              titleController: titleController,
-              amountController: amountController,
-              selectedDate: incomeDate,
-              onDateChange: (newDate) {
-                ref.read(incomeDateProvider.notifier).state = newDate;
-              },
-              onAdd: () {
-                final selectedDate = ref.read(incomeDateProvider);
-                final now = DateTime.now();
-                final updatedDate = DateTime(
-                  selectedDate.year,
-                  selectedDate.month,
-                  selectedDate.day,
-                  now.hour,
-                  now.minute,
-                  now.second,
-                  now.millisecond,
-                );
-                final title = titleController.text.trim();
-                final amount = double.tryParse(amountController.text);
-
-                final int startDay = ref.read(startDayProvider);
-                final DateTime startDate =
-                    DateTime(now.year, now.month, startDay);
-
-                // 開始日前のデータかを確認
-                if (updatedDate.isBefore(startDate)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('全ての項目を入力してください。')),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: InputArea(
+                titleController: titleController,
+                amountController: amountController,
+                selectedDate: incomeDate,
+                onDateChange: (newDate) {
+                  ref.read(incomeDateProvider.notifier).state = newDate;
+                },
+                onAdd: () {
+                  final selectedDate = ref.read(incomeDateProvider);
+                  final now = DateTime.now();
+                  final updatedDate = DateTime(
+                    selectedDate.year,
+                    selectedDate.month,
+                    selectedDate.day,
+                    now.hour,
+                    now.minute,
+                    now.second,
+                    now.millisecond,
                   );
-                  return; // 処理を中断
-                }
+                  final title = titleController.text.trim();
+                  final amount = double.tryParse(amountController.text);
 
-                if (title.isNotEmpty && amount != null) {
-                  ref.read(incomeViewModelProvider.notifier).addItem(
-                        Income(
-                          id: Uuid().v4(),
-                          title: title,
-                          amount: amount,
-                          date: updatedDate,
-                        ),
-                      );
-                  titleController.clear();
-                  amountController.clear();
-                  ref.read(incomeDateProvider.notifier).state =
-                      DateTime.now(); // 日付をリセット
-                }
-              },
-              useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
+                  final int startDay = ref.read(startDayProvider);
+                  final DateTime startDate =
+                      DateTime(now.year, now.month, startDay);
+
+                  // 開始日前のデータかを確認
+                  if (updatedDate.isBefore(startDate)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('全ての項目を入力してください。')),
+                    );
+                    return; // 処理を中断
+                  }
+
+                  if (title.isNotEmpty && amount != null) {
+                    ref.read(incomeViewModelProvider.notifier).addItem(
+                          Income(
+                            id: Uuid().v4(),
+                            title: title,
+                            amount: amount,
+                            date: updatedDate,
+                          ),
+                        );
+                    titleController.clear();
+                    amountController.clear();
+                    ref.read(incomeDateProvider.notifier).state =
+                        DateTime.now(); // 日付をリセット
+                  }
+                },
+                useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
+              ),
             ),
           ],
         ),

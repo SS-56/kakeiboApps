@@ -210,7 +210,9 @@ class _MyPageState extends ConsumerState<MyPage> {
                                           BorderSide(color: Colors.cyan),
                                     ),
                                     labelText: "目標額を入力",
+                                    floatingLabelStyle: TextStyle(color: Colors.cyan[800])
                                   ),
+                                  cursorColor: Colors.cyan[800],
                                 ),
                               ),
                               const SizedBox(width: 16),
