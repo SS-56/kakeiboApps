@@ -270,7 +270,11 @@ class InputArea extends ConsumerWidget {
                 },
                 children: List<Widget>.generate(
                   daysInMonth,
-                  (index) => Center(child: Text("${index + 1}日")),
+                  (index) => Center(
+                    child: Text(
+                      "${index + 1}日",
+                    ),
+                  ),
                 ),
               ),
             ),

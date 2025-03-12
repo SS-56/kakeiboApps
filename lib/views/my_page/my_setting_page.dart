@@ -152,7 +152,7 @@ class MySettingPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("キャンセル"),
+              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800]),),
             ),
             TextButton(
               onPressed: () {
@@ -162,7 +162,7 @@ class MySettingPage extends ConsumerWidget {
                 // 必要に応じて startDayProvider更新の処理を加えても良い
                 print("データがリセットされ、開始日が更新されました: $newDay");
               },
-              child: const Text("OK"),
+              child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
             ),
           ],
         );
