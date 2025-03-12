@@ -142,7 +142,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
                             trailing: isPaidUser
                                 ? IconButton(
                                     icon:
-                                        Icon(Icons.settings, color: Colors.black),
+                                        Icon(Icons.settings, color: Colors.cyan[800]),
                                     onPressed: () =>
                                         _editIncome(context, ref, income),
                                   )
