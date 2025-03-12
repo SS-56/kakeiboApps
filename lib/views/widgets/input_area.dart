@@ -137,7 +137,7 @@ class InputArea extends ConsumerWidget {
                     Text(
                       useDayOfMonthPicker
                           ? '毎月${selectedDate.day}日'
-                          : '${selectedDate.year}/${selectedDate.month}/${selectedDate.day}',
+                          : '　${selectedDate.month}月${selectedDate.day}日',
                     ),
                     Icon(
                       Icons.calendar_today,

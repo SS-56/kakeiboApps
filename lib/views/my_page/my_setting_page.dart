@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yosan_de_kakeibo/main.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
@@ -10,61 +11,109 @@ import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
 
-class MySettingPage extends ConsumerWidget {
-  const MySettingPage({Key? key}) : super(key: key);
+
+/// ConsumerStatefulWidget に変更し、createState() を正しくオーバーライド
+class MySettingPage extends ConsumerStatefulWidget {
+  // ★ 初回起動かどうかのフラグ
+  final bool isFirstTime;
+
+  const MySettingPage({
+    Key? key,
+    this.isFirstTime = false,
+  }) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  MySettingPageState createState() => MySettingPageState();
+}
+
+/// Stateクラスは ConsumerState<MySettingPage> を継承
+class MySettingPageState extends ConsumerState<MySettingPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 初回起動なら、画面描画後に利用規約ダイアログを自動表示
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.isFirstTime) {
+        _showTermsOfService(context, firstTime: true);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // ref.watch(...) はここで使える
     final subscriptionStatus = ref.watch(subscriptionStatusProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("マイ設定ページ"),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // マイページから移動してきた「課金プラン加入Card」
-            _buildSubscribedPlanCard(context, subscriptionStatus),
-            const SizedBox(height: 16),
+    // 戻るボタンでロゴに戻す (往復させる) => WillPopScope
+    return WillPopScope(
+      onWillPop: () async {
+        if (widget.isFirstTime) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const OpeningScreen()),
+          );
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("マイ設定ページ"),
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              // ──────────────────────────────────────
+              // 既存の文言や機能は削除・変更しない
+              // ──────────────────────────────────────
 
-            // 利用規約Card
-            Card(
-              child: ListTile(
-                title: const Text("利用規約"),
-                onTap: () {
-                  _showTermsOfService(context);
-                },
+              // マイページから移動してきた「課金プラン加入Card」
+              _buildSubscribedPlanCard(context, subscriptionStatus),
+              const SizedBox(height: 16),
+
+              // 利用規約Card
+              Card(
+                child: ListTile(
+                  title: const Text("利用規約"),
+                  onTap: () {
+                    // 通常時 => firstTime=false
+                    _showTermsOfService(context, firstTime: false);
+                  },
+                ),
               ),
-            ),
-            // プライバシーポリシーCard
-            Card(
-              child: ListTile(
-                title: const Text("プライバシーポリシー"),
-                onTap: () {
-                  _showPrivacyPolicy(context);
-                },
+              // プライバシーポリシーCard
+              Card(
+                child: ListTile(
+                  title: const Text("プライバシーポリシー"),
+                  onTap: () {
+                    _showPrivacyPolicy(context);
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
-            // 設定ページから移動してきた「全データ消去」(Card)
-            Card(
-              child: ListTile(
-                title: const Text("全データ消去"),
-                subtitle: const Text("すべてのデータを消去して初期状態に戻します。"),
-                onTap: () {
-                  int newDay = 1;
-                  _confirmResetData(context, ref, newDay);
-                },
+              const SizedBox(height: 32),
+
+              // 設定ページから移動してきた「全データ消去」(Card)
+              Card(
+                child: ListTile(
+                  title: const Text("全データ消去"),
+                  subtitle: const Text("すべてのデータを消去して初期状態に戻します。"),
+                  onTap: () {
+                    int newDay = 1;
+                    _confirmResetData(context, ref, newDay);
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// 課金プランカード
+  // ─────────────────────────────────────────────
+  // 以下、既存機能・文言をそのまま利用
+  // ─────────────────────────────────────────────
+
   Widget _buildSubscribedPlanCard(BuildContext context, String planName) {
     String localizedPlanName;
     switch (planName) {
@@ -103,7 +152,10 @@ class MySettingPage extends ConsumerWidget {
                     MaterialPageRoute(builder: (context) => SubscriptionPage()),
                   );
                 },
-                child: Text("課金プランを見る", style: TextStyle(color: Colors.cyan[800]),),
+                child: Text(
+                  "課金プランを見る",
+                  style: TextStyle(color: Colors.cyan[800]),
+                ),
               ),
             ),
           ],
@@ -112,7 +164,6 @@ class MySettingPage extends ConsumerWidget {
     );
   }
 
-  /// 全データ消去の確認ダイアログ
   void _confirmResetData(BuildContext context, WidgetRef ref, int newDay) {
     showDialog(
       context: context,
@@ -127,14 +178,14 @@ class MySettingPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800]),),
+              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800])),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 _showSecondConfirmation(context, ref, newDay);
               },
-              child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
+              child: Text("OK", style: TextStyle(color: Colors.cyan[800])),
             ),
           ],
         );
@@ -152,17 +203,15 @@ class MySettingPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800]),),
+              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800])),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 _resetData(ref);
-                // ここで開始日を newDay=1 に更新
-                // 必要に応じて startDayProvider更新の処理を加えても良い
                 print("データがリセットされ、開始日が更新されました: $newDay");
               },
-              child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
+              child: Text("OK", style: TextStyle(color: Colors.cyan[800])),
             ),
           ],
         );
@@ -198,15 +247,18 @@ class MySettingPage extends ConsumerWidget {
     ref.read(expenseExpandProvider.notifier).state = false;
   }
 
-  /// 利用規約ダイアログ
-  void _showTermsOfService(BuildContext context) {
+  // 利用規約ダイアログ
+  void _showTermsOfService(BuildContext context, {bool firstTime = false}) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("利用規約"),
-        content: const SingleChildScrollView(
-          child: Text(
-            """【利用規約】
+      builder: (_) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            title: const Text("利用規約"),
+            content: const SingleChildScrollView(
+              child: Text(
+                """【利用規約】
 この利用規約（以下、「本規約」）は、GappsOn（以下、「当社」）が提供する家計簿アプリ「予算deカケーボ」（以下、「本アプリ」）の利用条件を定めるものです。
 本アプリをご利用になる方（以下、「ユーザー」）は、本規約に同意の上で本アプリを利用するものとします。
 
@@ -250,19 +302,52 @@ class MySettingPage extends ConsumerWidget {
 メールアドレス：gappson55@gmail.com
 
 """,
+              ),
+            ),
+            actions: [
+              // 「閉じる」
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // ダイアログ閉じる
+                  if (firstTime) {
+                    // オープニングロゴへ戻す => 2秒後に再度MySettingPage
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const OpeningScreen()),
+                    );
+                  }
+                },
+                child: Text("閉じる", style: TextStyle(color: Colors.cyan[800])),
+              ),
+              // 「同意する」 (初回のみ)
+              if (firstTime)
+                TextButton(
+                  onPressed: () async {
+                    // 同意 => termsAccepted=true
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('termsAccepted', true);
+
+                    Navigator.pop(context);
+
+                    // メイン画面へ
+                    if (mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MyApp(isAccepted: true),
+                        ),
+                      );
+                    }
+                  },
+                  child: Text("同意する", style: TextStyle(color: Colors.cyan[800])),
+                ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("閉じる", style: TextStyle(color: Colors.cyan[800]),),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  /// プライバシーポリシーダイアログ
   void _showPrivacyPolicy(BuildContext context) {
     showDialog(
       context: context,
@@ -326,7 +411,7 @@ GappsOn（以下、「当社」）は、ユーザーのプライバシーを尊�
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("閉じる", style: TextStyle(color: Colors.cyan[800]),),
+            child: Text("閉じる", style: TextStyle(color: Colors.cyan[800])),
           ),
         ],
       ),

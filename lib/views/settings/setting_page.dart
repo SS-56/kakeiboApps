@@ -85,7 +85,7 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Divider(color: Colors.cyan[800],),
+            Divider(color: Colors.cyan[800]),
 
             // 日付入力方法(総収入/固定費)
             ListTile(
@@ -123,7 +123,7 @@ class SettingsPage extends ConsumerWidget {
                 activeColor: Colors.cyan[800],
               ),
             ),
-            Divider(color: Colors.cyan[800],),
+            Divider(color: Colors.cyan[800]),
 
             // 水道代2ヶ月に1度
             ListTile(
@@ -161,7 +161,7 @@ class SettingsPage extends ConsumerWidget {
                 activeColor: Colors.cyan[800],
               ),
             ),
-            Divider(color: Colors.cyan[800],),
+            Divider(color: Colors.cyan[800]),
 
             // 「種類を追加」 => プレミアムのみ
             ListTile(
@@ -175,13 +175,13 @@ class SettingsPage extends ConsumerWidget {
               ),
               subtitle: types.isEmpty
                   ? Text(
-                    "アイコン表示に切り替える",
-                    style: TextStyle(
-                      color: (subscriptionStatus == 'premium')
-                          ? Colors.black
-                          : Colors.grey,
-                    ),
-                  )
+                "アイコン表示に切り替える",
+                style: TextStyle(
+                  color: (subscriptionStatus == 'premium')
+                      ? Colors.black
+                      : Colors.grey,
+                ),
+              )
                   : Padding(
                 padding: const EdgeInsets.only(left: 8.0),
                 child: Column(
@@ -199,7 +199,8 @@ class SettingsPage extends ConsumerWidget {
                         Text(
                           type['name'],
                           style: TextStyle(
-                            color: (subscriptionStatus == 'premium')
+                            color:
+                            (subscriptionStatus == 'premium')
                                 ? Colors.black
                                 : Colors.grey,
                           ),
@@ -219,7 +220,7 @@ class SettingsPage extends ConsumerWidget {
                 }
               },
             ),
-            Divider(color: Colors.cyan[800],),
+            Divider(color: Colors.cyan[800]),
 
             // 金額データの並び順
             ListTile(
@@ -273,8 +274,6 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             Divider(color: Colors.cyan[800]),
-
-            // ★★★ 全データ消去は削除し、MySettingPage へ移動しました ★★★
           ],
         ),
       ),
@@ -315,6 +314,8 @@ class SettingsPage extends ConsumerWidget {
     return picked;
   }
 
+  /// ★ 修正: 「pickedDateがnullでなければ、常にダイアログ」を表示
+  ///         つまり日付が前後にかかわらず必ず _showEarlierDateConfirmDialog を呼ぶ
   void _selectStartDay(BuildContext context, WidgetRef ref) async {
     final now = DateTime.now();
     final selectedDay = ref.read(startDayProvider);  // 例: 16
@@ -326,7 +327,6 @@ class SettingsPage extends ConsumerWidget {
     final lastDay = DateTime(now.year, now.month + 1, 0).day;
     final lastDate = DateTime(now.year, now.month, lastDay);
 
-    // iOS ドラム式 or カレンダーピッカーで日付を選択
     final pickedDate = await showMyDatePicker(
       context: context,
       initialDate: initialDate,
@@ -335,28 +335,14 @@ class SettingsPage extends ConsumerWidget {
     );
 
     if (pickedDate != null) {
-      // もし 「pickedDate」が「開始日より前」なら、警告ダイアログを復活
-      final isBeforeStart = pickedDate.isBefore(initialDate);
-
-      if (isBeforeStart) {
-        _showEarlierDateConfirmDialog(
-          context,
-          ref,
-          pickedDate.day,
-        );
-      } else {
-        // それ以外の場合はそのまま反映
-        if (pickedDate.day != selectedDay) {
-          _updateStartDay(ref, pickedDate.day);
-        } else {
-          print("日付に変更はありません");
-        }
-      }
+      // ★★ 常にダイアログを出す (日付が前か後か関係なし)
+      _showEarlierDateConfirmDialog(context, ref, pickedDate.day);
     } else {
       print("ユーザーがキャンセルしました");
     }
   }
 
+  /// 警告ダイアログ: 「この日付を選ぶと開始日より前のデータが消えるがいいのか」
   void _showEarlierDateConfirmDialog(BuildContext context, WidgetRef ref, int newDay) {
     showDialog(
       context: context,
@@ -387,23 +373,24 @@ class SettingsPage extends ConsumerWidget {
     final oldDay = ref.read(startDayProvider); // 現在の開始日
     print("開始日が更新されます: old=$oldDay → new=$newDay");
 
-    // ★ もし newDay が oldDay より小さい => 「開始日より前になる」 => 確認ダイアログを出す
+    // ★ ここで「newDay < oldDay」かどうかを判定して、さらに別のダイアログを出す
+    //   => これも既存の文言を変えず、最低限の修正のみ
     if (newDay < oldDay) {
+      // 前倒し => "開始日より前の日付を選択" ダイアログ表示
       _showConfirmEarlierStartDay(ref, newDay);
     } else {
-      // ★ 従来の処理: そのまま実行 (データフィルタなど)
+      // それ以外 => そのまま適用
       _applyNewStartDay(ref, newDay);
     }
   }
 
-  /// ★ 確認ダイアログ: 「開始日が前倒しされるので、既存データが消えるが本当によいか？」
   void _showConfirmEarlierStartDay(WidgetRef ref, int newDay) {
     showDialog(
-      context: ref.context, // ConsumerWidget なら ref.context で取得可能
+      context: ref.context, // ConsumerWidgetではref.contextも可能
       builder: (_) => AlertDialog(
         title: const Text("開始日より前の日付を選択しました"),
         content: const Text(
-          "この日付を選ぶと、開始日以降のデータより前の部分が消去される可能性があります。\nよろしいですか？",
+          "この日付を選ぶと、開始日より前のカードが消去される可能性があります。\nよろしいですか？",
         ),
         actions: [
           TextButton(
@@ -413,7 +400,6 @@ class SettingsPage extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(ref.context);
-              // ★ OKの場合 => 従来の処理を実行
               _applyNewStartDay(ref, newDay);
             },
             child: const Text("OK"),
@@ -423,7 +409,6 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  /// ★ 従来の処理を分離: (データをフィルタして実質消去する可能性がある箇所)
   void _applyNewStartDay(WidgetRef ref, int newDay) {
     ref.read(startDayProvider.notifier).setStartDay(newDay);
     print("開始日が更新されました: $newDay 日");
@@ -432,7 +417,7 @@ class SettingsPage extends ConsumerWidget {
     final startDate = DateTime(now.year, now.month, newDay);
     final endDate = calculateEndDate(startDate);
 
-    // ★ 以下のフィルタリングにより「開始日より前のデータ」は実質的に除外される
+    // 「開始日より前のデータ」はフィルタリングで実質消去
     ref.read(expenseViewModelProvider.notifier).filterByDateRange(startDate, endDate);
     ref.read(fixedCostViewModelProvider.notifier).filterByDateRange(startDate, endDate);
     ref.read(incomeViewModelProvider.notifier).filterByDateRange(startDate, endDate);
@@ -443,7 +428,6 @@ class SettingsPage extends ConsumerWidget {
 
     print("管理期間メッセージ: $budgetPeriodMessage");
   }
-
 
   // 「種類を追加」 => プレミアムのみ
   void _addType(BuildContext context, WidgetRef ref) {
@@ -534,7 +518,6 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  // 課金関連ダイアログ
   void _showUpgradeDialog(BuildContext context) {
     showDialog(
       context: context,
