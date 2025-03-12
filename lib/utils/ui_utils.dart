@@ -291,6 +291,8 @@ class _CardEditDialogState extends State<_CardEditDialog> {
                         _localIsRemember = v;
                       });
                     },
+                    inactiveThumbColor: Colors.black,
+                    activeColor: Colors.cyan[800],
                   ),
                 ],
               ),
@@ -307,6 +309,8 @@ class _CardEditDialogState extends State<_CardEditDialog> {
                         _localIsWaste = v;
                       });
                     },
+                    inactiveThumbColor: Colors.black,
+                    activeColor: Colors.cyan[800],
                   ),
                 ],
               ),
@@ -316,7 +320,7 @@ class _CardEditDialogState extends State<_CardEditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('キャンセル'),
+          child: Text('キャンセル', style: TextStyle(color: Colors.cyan[800]),),
         ),
         ElevatedButton(
           onPressed: () {
@@ -331,7 +335,7 @@ class _CardEditDialogState extends State<_CardEditDialog> {
             );
             Navigator.pop(context);
           },
-          child: const Text('保存'),
+          child: Text('保存', style: TextStyle(color: Colors.cyan[800]),),
         ),
       ],
     );

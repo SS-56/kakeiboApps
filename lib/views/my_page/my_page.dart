@@ -99,6 +99,11 @@ class _MyPageState extends ConsumerState<MyPage> {
       "支出": nonWasteTotal,
     };
 
+    final _colorList = [
+      Colors.red,
+      Colors.cyan,
+    ];
+
     return Scaffold(
       appBar: AppBar(
         // 課金ユーザーのみ左側に戻るアイコン
@@ -178,6 +183,7 @@ class _MyPageState extends ConsumerState<MyPage> {
                           PieChart(
                             dataMap: dataMap,
                             chartType: ChartType.ring,
+                            colorList: _colorList,
                             chartRadius:
                                 MediaQuery.of(context).size.shortestSide * 0.3,
                             chartValuesOptions: const ChartValuesOptions(
@@ -205,13 +211,13 @@ class _MyPageState extends ConsumerState<MyPage> {
                                   controller: goalController,
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
-                                    focusedBorder: UnderlineInputBorder(
-                                      borderSide:
-                                          BorderSide(color: Colors.cyan),
-                                    ),
-                                    labelText: "目標額を入力",
-                                    floatingLabelStyle: TextStyle(color: Colors.cyan[800])
-                                  ),
+                                      focusedBorder: UnderlineInputBorder(
+                                        borderSide:
+                                            BorderSide(color: Colors.cyan),
+                                      ),
+                                      labelText: "目標額を入力",
+                                      floatingLabelStyle:
+                                          TextStyle(color: Colors.cyan[800])),
                                   cursorColor: Colors.cyan[800],
                                 ),
                               ),
