@@ -21,7 +21,8 @@ class SubscriptionPage extends ConsumerWidget {
         "description": """
 ・各金額カードをタップしてメモや編集が可能
 ・浪費スイッチでマイページに浪費額を表示
-・貯金額の目標設定、固定費に「貯金」と\n　入力して管理
+・貯金額の目標を設定可能
+・設定固定費に「貯金」と入力すれば\n　貯金額を残額から差引き
 ・月次データをクラウドに24ヶ月保存
         """,
         "isDev": false, // 開発中かどうか
@@ -149,7 +150,7 @@ class SubscriptionPage extends ConsumerWidget {
                     : (isCurrent
                     ? () => _unsubscribePlan(ref, planId)
                     : () => _subscribePlan(ref, planId)),
-                child: Text(buttonLabel),
+                child: Text(buttonLabel, style: TextStyle(color: Colors.cyan[800]),),
               ),
             ),
           ],

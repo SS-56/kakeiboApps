@@ -7,12 +7,12 @@ class UIUtils {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title ?? "エラー"),
-        content: Text(message),
+        title: Text(title ?? "エラー", style: TextStyle(color: Colors.cyan[800]),),
+        content: Text(message, style: TextStyle(color: Colors.cyan[800]),),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text("OK"),
+            child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
           ),
         ],
       ),
@@ -24,12 +24,12 @@ class UIUtils {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title ?? "成功"),
-        content: Text(message),
+        title: Text(title ?? "成功", style: TextStyle(color: Colors.cyan[800]),),
+        content: Text(message, style: TextStyle(color: Colors.cyan[800]),),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text("OK"),
+            child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
           ),
         ],
       ),
@@ -98,12 +98,12 @@ class UIUtils {
                       Text(
                         errorMessage,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16),
+                        style: TextStyle(fontSize: 16, color: Colors.cyan[800]),
                       ),
                       const SizedBox(height: 16),
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('閉じる'),
+                        child: Text('閉じる', style: TextStyle(color: Colors.cyan[800]),),
                       ),
                     ],
                   ),
@@ -126,7 +126,7 @@ class UIUtils {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text("閉じる"),
+            child: Text("閉じる", style: TextStyle(color: Colors.cyan[800]),),
           ),
         ],
       ),
@@ -238,13 +238,27 @@ class _CardEditDialogState extends State<_CardEditDialog> {
               children: [
                 const Text('日付: '),
                 IconButton(
-                  icon: const Icon(Icons.calendar_today),
+                  icon: Icon(Icons.calendar_today, color: Colors.cyan[800],),
                   onPressed: () async {
                     final picked = await showDatePicker(
                       context: context,
                       initialDate: _localDate,
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2100),
+                      builder: (BuildContext context, Widget? child) {
+                        return Theme(data: ThemeData.light().copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: Colors.cyan,
+                            onPrimary: Colors.white,
+                            onSurface: Colors.black,
+                          ),
+                          textButtonTheme: TextButtonThemeData(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.cyan,
+                            ),
+                          ),
+                        ), child: child!);
+                      }
                     );
                     if (picked != null) {
                       setState(() {

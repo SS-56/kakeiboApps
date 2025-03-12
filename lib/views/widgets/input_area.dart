@@ -42,7 +42,8 @@ class InputArea extends ConsumerWidget {
               onTap: () async {
                 if (useDayOfMonthPicker) {
                   // ★ 課金プラン: 「毎月◯日」Picker
-                  final pickedDay = await _pickDayOfMonthCupertino(context, selectedDate);
+                  final pickedDay =
+                      await _pickDayOfMonthCupertino(context, selectedDate);
                   if (pickedDay != null) {
                     // ◎ ここで “pickedDay” が “開始日（startDay）” より小さいなら「翌月」扱いにする
                     final now = DateTime.now();
@@ -76,7 +77,8 @@ class InputArea extends ConsumerWidget {
                     );
 
                     // ▼ 既存の判定ロジックをそのまま
-                    final startDate = DateTime(now.year, now.month, ref.read(startDayProvider));
+                    final startDate = DateTime(
+                        now.year, now.month, ref.read(startDayProvider));
                     if (newDate.isBefore(startDate)) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('開始日より前の日付は入力できません')),
@@ -92,10 +94,26 @@ class InputArea extends ConsumerWidget {
                     initialDate: selectedDate,
                     firstDate: DateTime(2000),
                     lastDate: DateTime(2100),
+                    builder: (BuildContext context, Widget? child) {
+                      return Theme(
+                          data: ThemeData.light().copyWith(
+                            colorScheme: ColorScheme.light(
+                              primary: Colors.cyan,
+                              onPrimary: Colors.white,
+                              onSurface: Colors.black,
+                            ),
+                            textButtonTheme: TextButtonThemeData(
+                              style: TextButton.styleFrom(
+                                  foregroundColor: Colors.cyan),
+                            ),
+                          ),
+                          child: child!);
+                    },
                   );
                   if (pickedDate != null) {
                     final now = DateTime.now();
-                    final startDate = DateTime(now.year, now.month, ref.read(startDayProvider));
+                    final startDate = DateTime(
+                        now.year, now.month, ref.read(startDayProvider));
                     if (pickedDate.isBefore(startDate)) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('開始日より前の日付は入力できません')),
@@ -121,7 +139,11 @@ class InputArea extends ConsumerWidget {
                           ? '毎月${selectedDate.day}日'
                           : '${selectedDate.year}/${selectedDate.month}/${selectedDate.day}',
                     ),
-                    const Icon(Icons.calendar_today, size: 16),
+                    Icon(
+                      Icons.calendar_today,
+                      size: 16,
+                      color: Colors.cyan[800],
+                    ),
                   ],
                 ),
               ),
@@ -207,7 +229,8 @@ class InputArea extends ConsumerWidget {
     );
   }
 
-  Future<int?> _pickDayOfMonthCupertino(BuildContext context, DateTime selectedDate) async {
+  Future<int?> _pickDayOfMonthCupertino(
+      BuildContext context, DateTime selectedDate) async {
     // 例: selectedDate の月
     final year = selectedDate.year;
     final month = selectedDate.month;
@@ -232,7 +255,10 @@ class InputArea extends ConsumerWidget {
                   // ユーザーがDoneを押したとき → day = selectedIndex + 1
                   Navigator.pop(context, selectedIndex + 1);
                 },
-                child: Text("完了"),
+                child: Text(
+                  "完了",
+                  style: TextStyle(color: Colors.cyan[800]),
+                ),
               ),
             ),
             // CupertinoPicker本体
@@ -244,7 +270,7 @@ class InputArea extends ConsumerWidget {
                 },
                 children: List<Widget>.generate(
                   daysInMonth,
-                      (index) => Center(child: Text("${index + 1}日")),
+                  (index) => Center(child: Text("${index + 1}日")),
                 ),
               ),
             ),

@@ -127,14 +127,14 @@ class MySettingPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("キャンセル"),
+              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800]),),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 _showSecondConfirmation(context, ref, newDay);
               },
-              child: const Text("OK"),
+              child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
             ),
           ],
         );
@@ -220,7 +220,7 @@ class MySettingPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("閉じる"),
+            child: Text("閉じる", style: TextStyle(color: Colors.cyan[800]),),
           ),
         ],
       ),
@@ -247,7 +247,7 @@ class MySettingPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("閉じる"),
+            child: Text("閉じる", style: TextStyle(color: Colors.cyan[800]),),
           ),
         ],
       ),

@@ -136,7 +136,7 @@ class _MyPageState extends ConsumerState<MyPage> {
         actions: [
           // 右側の設定アイコンを押下すると MySettingPage へ遷移
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: Icon(Icons.settings, color: Colors.cyan[800],),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const MySettingPage()),
