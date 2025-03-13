@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yosan_de_kakeibo/main.dart';
+import 'package:yosan_de_kakeibo/opening_screen.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
 import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
@@ -256,9 +257,16 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
           onWillPop: () async => false,
           child: AlertDialog(
             title: const Text("利用規約"),
-            content: const SingleChildScrollView(
-              child: Text(
-                """【利用規約】
+            content: SingleChildScrollView(
+              child: Container(
+                margin: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  """【利用規約】
 この利用規約（以下、「本規約」）は、GappsOn（以下、「当社」）が提供する家計簿アプリ「予算deカケーボ」（以下、「本アプリ」）の利用条件を定めるものです。
 本アプリをご利用になる方（以下、「ユーザー」）は、本規約に同意の上で本アプリを利用するものとします。
 
@@ -302,6 +310,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
 メールアドレス：gappson55@gmail.com
 
 """,
+                ),
               ),
             ),
             actions: [
@@ -353,9 +362,16 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text("プライバシーポリシー"),
-        content: const SingleChildScrollView(
-          child: Text(
-            """【プライバシーポリシー】
+        content: SingleChildScrollView(
+          child: Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              """【プライバシーポリシー】
 GappsOn（以下、「当社」）は、ユーザーのプライバシーを尊重し、個人情報を適切に保護するために、
 以下のプライバシーポリシー（以下、「本ポリシー」）を定めます。
 
@@ -406,6 +422,7 @@ GappsOn（以下、「当社」）は、ユーザーのプライバシーを尊�
 メールアドレス：gappson55@gmail.com
 
 """,
+            ),
           ),
         ),
         actions: [

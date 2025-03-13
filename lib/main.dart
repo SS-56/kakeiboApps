@@ -3,51 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yosan_de_kakeibo/opening_screen.dart';
 import 'package:yosan_de_kakeibo/views/my_page/my_setting_page.dart';
 import 'providers/page_providers.dart';
 import 'views/home/home_page.dart';
 import 'views/my_page/my_page.dart';
 import 'views/settings/setting_page.dart';
 
-// ★ オープニング画面 (2秒ロゴ表示→my_setting_page)
-class OpeningScreen extends StatefulWidget {
-  const OpeningScreen({Key? key}) : super(key: key);
 
-  @override
-  State<OpeningScreen> createState() => _OpeningScreenState();
-}
-
-class _OpeningScreenState extends State<OpeningScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // 2秒後に my_setting_page へ自動遷移
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      // pushReplacement => ここで「<」戻るボタンがなくなる
-      // 今回は戻るボタンが要る、と言われていますが
-      // 「往復」で使うために push ではなく pushReplacement でもOK
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const MySettingPage(isFirstTime: true),
-        ),
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text(
-          'GappsOn',
-          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

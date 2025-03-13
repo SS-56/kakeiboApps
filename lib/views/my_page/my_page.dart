@@ -348,24 +348,29 @@ class _MyPageState extends ConsumerState<MyPage> {
   void _showUpgradeDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) {
+      barrierDismissible: false, // 画面外タップで閉じなくするならtrue→false
+      builder: (dialogContext) {
         return AlertDialog(
-          title: const Text("プランを選択してください"),
+          title: const Text("プレミアムプランにアップグレード"),
           content: const Text("この機能を利用するには課金プランへの加入が必要です。"),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("キャンセル"),
+              onPressed: () {
+                // ★ ダイアログだけ閉じる
+                Navigator.pop(dialogContext);
+              },
+              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800])),
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                // ★ ダイアログを閉じてから 課金プラン画面へ
+                Navigator.pop(dialogContext);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SubscriptionPage()),
+                  MaterialPageRoute(builder: (_) => SubscriptionPage()),
                 );
               },
-              child: const Text("課金プランを確認する"),
+              child: Text("課金プランを確認する", style: TextStyle(color: Colors.cyan[800])),
             ),
           ],
         );

@@ -29,12 +29,16 @@ class SettingsPage extends ConsumerWidget {
 
     // 日付入力方法
     final isCalendarMode =
-        ref.watch(settingsViewModelProvider).useCalendarForIncomeFixed;
+        ref
+            .watch(settingsViewModelProvider)
+            .useCalendarForIncomeFixed;
     // スイッチがON => 「毎月◯日」モード
     final isEveryMonth = !isCalendarMode;
 
     // 水道代2ヶ月ごとのbool
-    final isBimonthly = ref.watch(settingsViewModelProvider).isWaterBillBimonthly;
+    final isBimonthly = ref
+        .watch(settingsViewModelProvider)
+        .isWaterBillBimonthly;
 
     final sortOrder = ref.watch(sortOrderProvider);
 
@@ -73,7 +77,9 @@ class SettingsPage extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(left: 12.0, top: 8.0),
                       child: Text(
-                        ref.watch(budgetPeriodProvider).isNotEmpty
+                        ref
+                            .watch(budgetPeriodProvider)
+                            .isNotEmpty
                             ? ref.watch(budgetPeriodProvider)
                             : "",
                         style: const TextStyle(
@@ -255,6 +261,7 @@ class SettingsPage extends ConsumerWidget {
                       Radio<bool>(
                         value: false,
                         groupValue: sortOrder,
+                        activeColor: Colors.cyan[800],
                         onChanged: (value) {
                           ref
                               .read(sortOrderProvider.notifier)
@@ -267,7 +274,7 @@ class SettingsPage extends ConsumerWidget {
                               .sortItems(value);
                         },
                       ),
-                      const Text("上に追加"),
+                      Text("上に追加"),
                     ],
                   ),
                 ],
@@ -318,7 +325,7 @@ class SettingsPage extends ConsumerWidget {
   ///         つまり日付が前後にかかわらず必ず _showEarlierDateConfirmDialog を呼ぶ
   void _selectStartDay(BuildContext context, WidgetRef ref) async {
     final now = DateTime.now();
-    final selectedDay = ref.read(startDayProvider);  // 例: 16
+    final selectedDay = ref.read(startDayProvider); // 例: 16
 
     // ここが「家計簿開始日の当月の日付」として使われる
     final initialDate = DateTime(now.year, now.month, selectedDay);
@@ -342,26 +349,34 @@ class SettingsPage extends ConsumerWidget {
     }
   }
 
-  /// 警告ダイアログ: 「この日付を選ぶと開始日より前のデータが消えるがいいのか」
-  void _showEarlierDateConfirmDialog(BuildContext context, WidgetRef ref, int newDay) {
+  void _showEarlierDateConfirmDialog(
+      BuildContext context,
+      WidgetRef ref,
+      int newDay,
+      ) {
     showDialog(
       context: context,
-      builder: (_) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text("開始日を変更します"),
-          content: const Text("この日付を選択すると、開始日より前のデータが消去されます。\nよろしいですか？"),
+          content: const Text(
+            "この日付を選択すると、開始日より前のデータが消去されます。\nよろしいですか？",
+          ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("キャンセル"),
+              onPressed: () {
+                // ★ ダイアログを閉じる => 必ず dialogContext を使う
+                Navigator.pop(dialogContext);
+              },
+              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800]),),
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
-                // OKが押されたらデータ消去を含む処理を続行
+                // ダイアログを閉じてから startDay更新
+                Navigator.pop(dialogContext);
                 _updateStartDay(ref, newDay);
               },
-              child: const Text("OK"),
+              child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
             ),
           ],
         );
@@ -387,25 +402,27 @@ class SettingsPage extends ConsumerWidget {
   void _showConfirmEarlierStartDay(WidgetRef ref, int newDay) {
     showDialog(
       context: ref.context, // ConsumerWidgetではref.contextも可能
-      builder: (_) => AlertDialog(
-        title: const Text("開始日より前の日付を選択しました"),
-        content: const Text(
-          "この日付を選ぶと、開始日より前のカードが消去される可能性があります。\nよろしいですか？",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ref.context),
-            child: const Text("キャンセル"),
+      builder: (_) =>
+          AlertDialog(
+            title: const Text("開始日より前の日付を選択しました"),
+            content: const Text(
+              "この日付を選ぶと、開始日より前のカードが消去される可能性があります。\nよろしいですか？",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ref.context),
+                child: Text(
+                  "キャンセル", style: TextStyle(color: Colors.cyan[800]),),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ref.context);
+                  _applyNewStartDay(ref, newDay);
+                },
+                child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ref.context);
-              _applyNewStartDay(ref, newDay);
-            },
-            child: const Text("OK"),
-          ),
-        ],
-      ),
     );
   }
 
@@ -418,13 +435,19 @@ class SettingsPage extends ConsumerWidget {
     final endDate = calculateEndDate(startDate);
 
     // 「開始日より前のデータ」はフィルタリングで実質消去
-    ref.read(expenseViewModelProvider.notifier).filterByDateRange(startDate, endDate);
-    ref.read(fixedCostViewModelProvider.notifier).filterByDateRange(startDate, endDate);
-    ref.read(incomeViewModelProvider.notifier).filterByDateRange(startDate, endDate);
+    ref.read(expenseViewModelProvider.notifier).filterByDateRange(
+        startDate, endDate);
+    ref.read(fixedCostViewModelProvider.notifier).filterByDateRange(
+        startDate, endDate);
+    ref.read(incomeViewModelProvider.notifier).filterByDateRange(
+        startDate, endDate);
 
     final budgetPeriodMessage =
-        "${startDate.month}月${startDate.day}日から${endDate.month}月${endDate.day}日までを管理します";
-    ref.read(budgetPeriodProvider.notifier).state = budgetPeriodMessage;
+        "${startDate.month}月${startDate.day}日から${endDate.month}月${endDate
+        .day}日までを管理します";
+    ref
+        .read(budgetPeriodProvider.notifier)
+        .state = budgetPeriodMessage;
 
     print("管理期間メッセージ: $budgetPeriodMessage");
   }
@@ -463,7 +486,8 @@ class SettingsPage extends ConsumerWidget {
                   _iconChoice(Icons.checkroom, "服", selectedIcon, (icon) {
                     selectedIcon = icon;
                   }),
-                  _iconChoice(Icons.local_drink, "ボトル", selectedIcon, (icon) {
+                  _iconChoice(
+                      Icons.local_drink, "ボトル", selectedIcon, (icon) {
                     selectedIcon = icon;
                   }),
                   _iconChoice(Icons.receipt, "請求書", selectedIcon, (icon) {
@@ -479,7 +503,8 @@ class SettingsPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("キャンセル"),
+              child: Text(
+                "キャンセル", style: TextStyle(color: Colors.cyan[800]),),
             ),
             TextButton(
               onPressed: () {
@@ -492,7 +517,7 @@ class SettingsPage extends ConsumerWidget {
                 }
                 Navigator.pop(context);
               },
-              child: const Text("追加"),
+              child: Text("追加", style: TextStyle(color: Colors.cyan[800]),),
             ),
           ],
         );
@@ -521,24 +546,30 @@ class SettingsPage extends ConsumerWidget {
   void _showUpgradeDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) {
+      barrierDismissible: false, // 画面外タップで閉じないようにしたければ
+      builder: (dialogContext) {
         return AlertDialog(
-          title: const Text("プレミアムプランにアップグレード"),
-          content: const Text("この機能を利用するには課金プランへの加入が必要です。"),
+          title: const Text("課金プラン限定機能"),
+          content: const Text(
+              "この機能を利用するにはベーシック以上\nの課金プランへの加入が必要です。"),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("キャンセル"),
+              onPressed: () {
+                // ダイアログを閉じるだけ
+                Navigator.pop(dialogContext);
+              },
+              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800])),
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                // ダイアログを閉じる → その後に SubscriptionPage へ遷移
+                Navigator.pop(dialogContext);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => SubscriptionPage()),
+                  MaterialPageRoute(builder: (_) => SubscriptionPage()),
                 );
               },
-              child: const Text("課金プランを確認する"),
+              child: Text("課金プランを確認する", style: TextStyle(color: Colors.cyan[800]),),
             ),
           ],
         );
@@ -546,21 +577,25 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
+
   void _showPremiumRequiredDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text("プレミアム機能"),
-          content: const Text("この機能はプレミアムプラン加入が必要です。\n(現在準備中)"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
+      barrierDismissible: false,
+      builder: (dialogContext) =>
+          AlertDialog(
+            title: const Text("プレミアム課金プラン\n限定機能"),
+            content: const Text(
+                "この機能はプレミアムプラン加入が必要です。\n(現在準備中)"),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext); // ここも dialogContext
+                },
+                child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
+              ),
+            ],
+          ),
     );
   }
 }
