@@ -71,12 +71,15 @@ void clearMonthlyData({
 }
 
 /// finalizeMonth:
-///   - userTriggered==true で初めて残額を貯金に合算 & metadata保存 & clearMonthlyData実行
+///   - 自動で月次データを保存したい => userTriggered==false のときは必ず保存
+///   - 手動リセット(userTriggered==true) => 貯金合算 + メダル + 全データ削除 => 保存しない
 Future<void> finalizeMonth(WidgetRef ref) async {
+  // 1) 現在の incomes/fixedCosts/expenses を取得
   final incomes = ref.read(incomeViewModelProvider);
   final fixedCosts = ref.read(fixedCostViewModelProvider);
   final expenses = ref.read(expenseViewModelProvider);
 
+  // 2) 合計金額などを計算
   final totalIncome = incomes.fold(0.0, (sum, i) => sum + i.amount);
   final totalFixed  = fixedCosts.fold(0.0, (sum, f) => sum + f.amount);
   final totalSpent  = expenses.fold(0.0, (sum, e) => sum + e.amount);
@@ -86,82 +89,84 @@ Future<void> finalizeMonth(WidgetRef ref) async {
   final nonWaste    = totalSpent - wasteTotal;
   final remainingBalance = totalIncome - totalFixed - totalSpent;
 
+  // SharedPreferences から oldSaving や goalSaving, userTriggered などを取得
   final sp = await SharedPreferences.getInstance();
   final oldSaving   = sp.getDouble("start_of_month_saving") ?? 0.0;
   final goalSaving  = sp.getDouble("savings_goal") ?? 0.0;
 
-  // 貯金カード
+  final userTriggered = sp.getBool('isUserTriggeredFinalize') ?? false;
+
+  // Subscription (free/basic/premium)
+  final subscription = ref.read(subscriptionStatusProvider);
+  final isPaidUser = (subscription == 'basic' || subscription == 'premium');
+
+  // 貯金カードがあれば取得
   final savingCard = fixedCosts.firstWhereOrNull((fc) => fc.title == "貯金");
   final thisMonthSaving = savingCard?.amount ?? 0.0;
 
-  // monthly_dataに保存する newTotalSaving
   double newTotalSaving = thisMonthSaving;
 
-  final subscription = ref.read(subscriptionStatusProvider);
-  final isPaidUser = (subscription=='basic' || subscription=='premium');
-
-  // SharedPreferencesのフラグ => ユーザーが手動で月次リセットしたか
-  final userTriggered = sp.getBool('isUserTriggeredFinalize') ?? false;
-
-  // userTriggered==trueなら 残額を貯金に合算
+  // (A) 手動リセット => 合算 + メダル(有料のとき) + 全データ削除
   if (userTriggered) {
+    // 残額を貯金に合算
     if (remainingBalance > 0 && savingCard != null) {
       newTotalSaving = thisMonthSaving + remainingBalance;
-      // copyWithで更新
+
       final updatedSaving = savingCard.copyWith(amount: newTotalSaving);
       ref.read(fixedCostViewModelProvider.notifier).updateFixedCost(updatedSaving);
-      // メダル判定
-      await ref.read(medalViewModelProvider.notifier).checkAndAwardMedal(
-        totalIncome: totalIncome,
-        remainingBalance: remainingBalance,
-        oldSaving: oldSaving,
-        newSaving: thisMonthSaving,
-        isPaidUser: isPaidUser,
-      );
+
+      // メダル: isPaidUserなら付与
+      if (isPaidUser) {
+        await ref.read(medalViewModelProvider.notifier).checkAndAwardMedal(
+          totalIncome: totalIncome,
+          remainingBalance: remainingBalance,
+          oldSaving: oldSaving,
+          newSaving: thisMonthSaving,
+          isPaidUser: true,
+        );
+      }
     }
+
+    // 全データ削除
+    clearMonthlyData(
+      incomes: incomes,
+      fixedCosts: fixedCosts,
+      expenses: expenses,
+    );
+
+    // userTriggeredをオフにして終了
+    await sp.setBool('isUserTriggeredFinalize', false);
+    await sp.setDouble('start_of_month_saving', newTotalSaving);
+    return;
   }
 
-
-  // metadata: userTriggered==trueの時だけ設定。 falseなら null
-  Map<String,dynamic>? metadata;
-  if (userTriggered) {
-    metadata = {
-      'wasteTotal'      : wasteTotal,
-      'totalSpent'      : totalSpent,
-      'nonWaste'        : nonWaste,
-      'goalSaving'      : goalSaving,
-      'thisMonthSaving' : thisMonthSaving,
-      'totalSaving'     : newTotalSaving,
-    };
-  }
-
-  // 課金ユーザーなら保存
+  // (B) 自動保存 => metadataを作って Firebaseへ
   if (isPaidUser) {
-    final uid = sp.getString('firebase_uid') ?? 'dummy';
     final now = DateTime.now();
     final yyyyMM = '${now.year}${now.month.toString().padLeft(2, '0')}';
     final repo = ref.read(firebaseRepositoryProvider);
 
+    final metadata = {
+      'wasteTotal': wasteTotal,
+      'totalSpent': totalSpent,
+      'nonWaste': nonWaste,
+      'goalSaving': goalSaving,
+      'thisMonthSaving': thisMonthSaving,
+      'totalSaving': thisMonthSaving,
+      'userTriggered': false,
+    };
+
+    final uid = sp.getString('firebase_uid') ?? 'dummy';
     await repo.saveMonthlyData(
       uid: uid,
       yyyyMM: yyyyMM,
       incomes: incomes,
       fixedCosts: fixedCosts,
       expenses: expenses,
-      metadata: metadata, // userTriggered==false => null
+      metadata: metadata,
     );
   }
 
-  // userTriggered==true => clear
-  if (userTriggered) {
-    clearMonthlyData(
-      incomes: incomes,
-      fixedCosts: fixedCosts,
-      expenses: expenses,
-    );
-    await sp.setBool('isUserTriggeredFinalize', false);
-  }
-
-  // 次回 oldSaving更新
-  await sp.setDouble('start_of_month_saving', newTotalSaving);
+  // oldSaving更新 => 合算していないので thisMonthSaving のまま
+  await sp.setDouble('start_of_month_saving', thisMonthSaving);
 }

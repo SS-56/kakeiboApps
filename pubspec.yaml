@@ -43,6 +43,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   url_launcher: ^6.3.1
   in_app_purchase: ^3.2.0
+  in_app_purchase_storekit: ^0.3.21
   firebase_auth: ^5.4.1
   firebase_core: ^3.10.1
   firebase_remote_config: ^5.3.1

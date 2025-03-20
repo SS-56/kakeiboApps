@@ -1,31 +1,41 @@
-// repositories/medal_repository.dart
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yosan_de_kakeibo/models/medal.dart';
 
 /// メダル情報の保存・取得インターフェイス
-/// 実装: SharedPreferences でも Firebase でもOK
 abstract class MedalRepository {
   Future<List<Medal>> getMedals();
   Future<void> saveMedals(List<Medal> medals);
 }
 
-/// 例: SharedPreferences実装の場合
-/// ここでは詳細は省略して、仮のダミーを示す
+/// 実装: SharedPreferences
 class MedalRepositoryImpl implements MedalRepository {
+  static const _medalsKey = "saved_medals_list";
+
   @override
   Future<List<Medal>> getMedals() async {
-    // TODO: SharedPreferences等から読み込む
-    return [];
+    final sp = await SharedPreferences.getInstance();
+    final jsonString = sp.getString(_medalsKey);
+    if (jsonString == null) {
+      return [];
+    }
+    final List decoded = jsonDecode(jsonString) as List;
+    return decoded.map((m) => Medal.fromJson(m as Map<String,dynamic>)).toList();
   }
 
   @override
   Future<void> saveMedals(List<Medal> medals) async {
-    // TODO: JSON化して保存
+    final sp = await SharedPreferences.getInstance();
+    final encoded = jsonEncode(
+      medals.map((m) => m.toJson()).toList(),
+    );
+    await sp.setString(_medalsKey, encoded);
   }
 }
 
-// ↑ これらに加えて、Providerを定義
+// Provider
 final medalRepositoryProvider = Provider<MedalRepository>((ref) {
   return MedalRepositoryImpl();
 });

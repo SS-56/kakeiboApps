@@ -31,10 +31,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     // 24件取得
     final docs = await repo.loadMyPageHistory(uid);
 
-    // monthly_data の 'metadata' があるdocだけ表示
-    final filtered = docs.where((d) => d['metadata'] != null).toList();
+    // 既に finalizeMonth が毎回 metadata を付けて保存するので、基本的に null は無いはず
+    // もし念のため null があっても取り込む
     setState(() {
-      monthlyDocs = filtered;
+      monthlyDocs = docs;
       _currentIndex = 0;
     });
   }
@@ -47,29 +47,34 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
           title: const Text("マイページ 過去データ"),
           automaticallyImplyLeading: false,
           actions: [
+            // 右上に “＞” で戻る
             IconButton(
-              icon: const Icon(Icons.chevron_right),
+              icon: const Icon(Icons.arrow_forward),
               onPressed: () => Navigator.pop(context),
-            )
+            ),
           ],
         ),
-        body: const Center(child: Text("過去データがありません")),
+        body: const Center(
+          child: Text(
+            "過去データがありません\n\n(まだ1度も finalizeMonth が呼ばれていない可能性)",
+            textAlign: TextAlign.center,
+          ),
+        ),
       );
     }
 
     final doc = monthlyDocs[_currentIndex];
-    final monthId = doc['monthId'] ?? '(unknown)';
-    final meta = doc['metadata'] as Map<String,dynamic>;
+    final docId = doc['docId'] ?? '(unknown)';
+    final meta = doc['metadata'] as Map<String,dynamic>?;
 
-    // 小数点を表示しないように
-    final wasteVal = (meta['wasteTotal']      as double? ?? 0).toStringAsFixed(0);
-    final totalSpent= (meta['totalSpent']     as double? ?? 0).toStringAsFixed(0);
-    final nonVal   = (meta['nonWaste']        as double? ?? 0).toStringAsFixed(0);
-    final goalVal  = (meta['goalSaving']      as double? ?? 0).toStringAsFixed(0);
-    final thisSav  = (meta['thisMonthSaving'] as double? ?? 0).toStringAsFixed(0);
-    final totSav   = (meta['totalSaving']     as double? ?? 0).toStringAsFixed(0);
+    // メタデータ無いときは 0表示 or fallback
+    final wasteVal   = (meta?['wasteTotal']      as double? ?? 0).toStringAsFixed(0);
+    final totalSpent = (meta?['totalSpent']      as double? ?? 0).toStringAsFixed(0);
+    final nonVal     = (meta?['nonWaste']        as double? ?? 0).toStringAsFixed(0);
+    final goalVal    = (meta?['goalSaving']      as double? ?? 0).toStringAsFixed(0);
+    final thisSav    = (meta?['thisMonthSaving'] as double? ?? 0).toStringAsFixed(0);
+    final totSav     = (meta?['totalSaving']     as double? ?? 0).toStringAsFixed(0);
 
-    // PieChart用 double
     final wasteNum = double.parse(wasteVal);
     final nonNum   = double.parse(nonVal);
 
@@ -83,22 +88,27 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
         automaticallyImplyLeading: false,
         title: const Text("マイページ 過去データ"),
         leading: _buildLeftButton(),
-        actions: _buildRightButton(),
+        actions: [
+          // 右上に "＞" で Navigator.pop
+          IconButton(
+            icon: const Icon(Icons.arrow_forward),
+            onPressed: () => Navigator.pop(context),
+          )
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text("月: $monthId",
+            Text("月ID: $docId",
                 style: const TextStyle(fontSize:18, fontWeight:FontWeight.bold)),
             const SizedBox(height:16),
 
-            // 使った金額 (PieChart) Cardをmy_page.dartと同じレイアウトに近づける
             Card(
               margin: const EdgeInsets.only(bottom:16),
               child: Column(
                 children: [
-                  const SizedBox(height: 16),
+                  const SizedBox(height:16),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Padding(
@@ -127,8 +137,6 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                 ],
               ),
             ),
-
-            // 貯金関連のCard
             Card(
               margin: const EdgeInsets.only(bottom:16),
               child: Column(
@@ -160,29 +168,14 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     );
   }
 
-  // ------------------------------------------------------------------
   Widget? _buildLeftButton() {
-    // 2ページ目以降 => leftに <
-    if (_currentIndex > 0) {
+    if (_currentIndex>0) {
       return IconButton(
         icon: const Icon(Icons.chevron_left),
         onPressed: _goPrevPage,
       );
     }
     return null;
-  }
-
-  List<Widget> _buildRightButton() {
-    // 1ページ目 & docs>1 => >
-    if (_currentIndex == 0 && monthlyDocs.length > 1) {
-      return [
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: _goNextPage,
-        )
-      ];
-    }
-    return [];
   }
 
   void _goNextPage() {

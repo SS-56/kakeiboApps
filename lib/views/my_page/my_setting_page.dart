@@ -12,6 +12,7 @@ import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
 
 /// ConsumerStatefulWidget に変更し、createState() を正しくオーバーライド
 class MySettingPage extends ConsumerStatefulWidget {
@@ -99,8 +100,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
                   title: const Text("全データ消去"),
                   subtitle: const Text("すべてのデータを消去して初期状態に戻します。"),
                   onTap: () {
-                    int newDay = 1;
-                    _confirmResetData(context, ref, newDay);
+                    _confirmResetData(context, ref, 1);
                   },
                 ),
               ),
@@ -111,9 +111,21 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
     );
   }
 
-  // ─────────────────────────────────────────────
-  // 以下、既存機能・文言をそのまま利用
-  // ─────────────────────────────────────────────
+  void _showMustUnsubscribeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("全データ削除"),
+        content: const Text("退会してから全データ削除できます。\n\nまずは課金プランを退会してください。"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSubscribedPlanCard(BuildContext context, String planName) {
     String localizedPlanName;
@@ -150,7 +162,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => SubscriptionPage()),
+                    MaterialPageRoute(builder: (context) => const SubscriptionPage()),
                   );
                 },
                 child: Text(
@@ -224,6 +236,17 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
+    // ★ 修正: 全データ消去時に FirebaseAuth サインアウト
+    try {
+      final auth = FirebaseAuth.instance;
+      if (auth.currentUser != null) {
+        print("[DEBUG] _resetData => signOut from FirebaseAuth");
+        await auth.signOut();
+      }
+    } catch (e) {
+      print("[ERROR] resetData signOut failed: $e");
+    }
+
     // プロバイダの状態リセット
     ref.read(startDayProvider.notifier).state = 1;
     ref.read(customCategoryProvider.notifier).state = [];
@@ -265,7 +288,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
+                child: const Text(
                   """【利用規約】
 この利用規約（以下、「本規約」）は、GappsOn（以下、「当社」）が提供する家計簿アプリ「予算deカケーボ」（以下、「本アプリ」）の利用条件を定めるものです。
 本アプリをご利用になる方（以下、「ユーザー」）は、本規約に同意の上で本アプリを利用するものとします。
@@ -319,7 +342,6 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
                 onPressed: () {
                   Navigator.pop(context); // ダイアログ閉じる
                   if (firstTime) {
-                    // オープニングロゴへ戻す => 2秒後に再度MySettingPage
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (_) => const OpeningScreen()),
@@ -332,13 +354,11 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
               if (firstTime)
                 TextButton(
                   onPressed: () async {
-                    // 同意 => termsAccepted=true
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setBool('termsAccepted', true);
 
                     Navigator.pop(context);
 
-                    // メイン画面へ
                     if (mounted) {
                       Navigator.pushReplacement(
                         context,
@@ -370,7 +390,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
               border: Border.all(color: Colors.grey),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
+            child: const Text(
               """【プライバシーポリシー】
 GappsOn（以下、「当社」）は、ユーザーのプライバシーを尊重し、個人情報を適切に保護するために、
 以下のプライバシーポリシー（以下、「本ポリシー」）を定めます。

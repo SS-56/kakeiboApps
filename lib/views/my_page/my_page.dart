@@ -72,26 +72,22 @@ class _MyPageState extends ConsumerState<MyPage> {
   @override
   Widget build(BuildContext context) {
     final subscriptionStatus = ref.watch(subscriptionStatusProvider);
-    final isPaidUser =
-        (subscriptionStatus == 'basic' || subscriptionStatus == 'premium');
+    final isPaidUser = (subscriptionStatus == 'basic' || subscriptionStatus == 'premium');
 
     final expenses = ref.watch(expenseViewModelProvider);
     final totalSpent = expenses.fold<double>(0.0, (sum, e) => sum + e.amount);
-    final wasteTotal = expenses
-        .where((e) => e.isWaste)
-        .fold<double>(0.0, (sum, e) => sum + e.amount);
+    final wasteTotal = expenses.where((e) => e.isWaste).fold<double>(0.0, (sum, e) => sum + e.amount);
     final nonWasteTotal = totalSpent - wasteTotal;
 
     // 毎月の貯金額と目標
-    final savingsTotal =
-        ref.watch(fixedCostViewModelProvider.notifier).savingsTotal;
+    final savingsTotal = ref.watch(fixedCostViewModelProvider.notifier).savingsTotal;
     final savingsGoal = ref.watch(savingsGoalProvider);
     final goalController = TextEditingController();
 
-    // メダル
+    // メダル一覧を取得
     final medals = ref.watch(medalViewModelProvider);
-    final last24 =
-        medals.length > 24 ? medals.sublist(medals.length - 24) : medals;
+    // 直近24件だけ表示
+    final last24 = (medals.length > 24) ? medals.sublist(medals.length - 24) : medals;
 
     // 円グラフ用
     final dataMap = {
@@ -106,37 +102,34 @@ class _MyPageState extends ConsumerState<MyPage> {
 
     return Scaffold(
       appBar: AppBar(
-        // 課金ユーザーのみ左側に戻るアイコン
         leading: isPaidUser
             ? IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          const HistoryPage(),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        const begin = Offset(-1.0, 0.0);
-                        const end = Offset.zero;
-                        final tween = Tween(begin: begin, end: end);
-                        final curvedAnimation = CurvedAnimation(
-                            parent: animation, curve: Curves.easeInOut);
-                        return SlideTransition(
-                          position: tween.animate(curvedAnimation),
-                          child: child,
-                        );
-                      },
-                    ),
+          icon: const Icon(Icons.chevron_left),
+          onPressed: () {
+            // 過去の実績画面(HistoryPage)へ
+            Navigator.of(context).push(
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => const HistoryPage(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(-1.0, 0.0);
+                  const end = Offset.zero;
+                  final tween = Tween(begin: begin, end: end);
+                  final curvedAnimation = CurvedAnimation(
+                      parent: animation, curve: Curves.easeInOut);
+                  return SlideTransition(
+                    position: tween.animate(curvedAnimation),
+                    child: child,
                   );
                 },
-              )
+              ),
+            );
+          },
+        )
             : null,
         title: const Text("マイページ"),
         actions: [
-          // 右側の設定アイコンを押下すると MySettingPage へ遷移
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.cyan[800],),
+            icon: Icon(Icons.settings, color: Colors.cyan[800]),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const MySettingPage()),
@@ -145,7 +138,6 @@ class _MyPageState extends ConsumerState<MyPage> {
           ),
         ],
       ),
-      // 無料プランならアップグレードを促すUIを表示
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
@@ -154,148 +146,138 @@ class _MyPageState extends ConsumerState<MyPage> {
         child: (subscriptionStatus == 'free')
             ? Center(child: _buildUpgradeMessage(context))
             : SingleChildScrollView(
+          child: Column(
+            children: [
+              // 現在の課金プランを表示するカード
+              _buildPlanStatusCard(subscriptionStatus),
+              const SizedBox(height: 16),
+
+              // 使った金額 & 円グラフ Card
+              Card(
+                margin: const EdgeInsets.only(bottom: 16),
                 child: Column(
                   children: [
-                    // ★★ ここに新たにプラン状況を表示する Card を追加 ★★
-                    _buildPlanStatusCard(subscriptionStatus),
                     const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 40.0),
+                        child: Column(
+                          children: [
+                            _buildFixedRow("支出合計:", totalSpent),
+                            _buildFixedRow("浪費合計:", wasteTotal),
+                            _buildFixedRow("差引金額:", nonWasteTotal),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    PieChart(
+                      dataMap: dataMap,
+                      chartType: ChartType.ring,
+                      colorList: _colorList,
+                      chartRadius: MediaQuery.of(context).size.shortestSide * 0.3,
+                      chartValuesOptions: const ChartValuesOptions(
+                        showChartValuesInPercentage: true,
+                        decimalPlaces: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
 
-                    // 使った金額 & 円グラフ
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 16),
+              // 貯金関連
+              Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  children: [
+                    const Text("ホーム画面の固定費ページで種類に\n『貯金』と入力して管理"),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        SizedBox(
+                          width: 200,
+                          child: TextField(
+                            controller: goalController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              focusedBorder: const UnderlineInputBorder(
+                                borderSide: BorderSide(color: Colors.cyan),
+                              ),
+                              labelText: "目標額を入力",
+                              floatingLabelStyle: TextStyle(color: Colors.cyan[800]),
+                            ),
+                            cursorColor: Colors.cyan[800],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            final newGoal = double.tryParse(goalController.text) ?? 0;
+                            ref.read(savingsGoalProvider.notifier).setGoal(newGoal);
+                          },
+                          child: Text("保存", style: TextStyle(color: Colors.cyan[800])),
+                        ),
+                        const SizedBox(width: 16),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 40.0),
                       child: Column(
                         children: [
                           const SizedBox(height: 16),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 40.0),
-                              child: Column(
-                                children: [
-                                  _buildFixedRow("支出合計:", totalSpent),
-                                  _buildFixedRow("浪費合計:", wasteTotal),
-                                  _buildFixedRow("差引金額:", nonWasteTotal),
-                                ],
-                              ),
-                            ),
+                          _buildFixedRow("目標貯金額:", savingsGoal),
+                          FutureBuilder<double>(
+                            future: _futurePastSavingSum,
+                            builder: (ctx, snap) {
+                              if (snap.connectionState == ConnectionState.waiting) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(8.0),
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              if (snap.hasError) {
+                                return Text("貯金総額の取得失敗: ${snap.error}");
+                              }
+                              final pastSaving = snap.data ?? 0.0;
+                              final totalSaving = pastSaving + savingsTotal;
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: _buildFixedRow("貯金の総額:", totalSaving),
+                              );
+                            },
                           ),
-                          const SizedBox(height: 20),
-                          PieChart(
-                            dataMap: dataMap,
-                            chartType: ChartType.ring,
-                            colorList: _colorList,
-                            chartRadius:
-                                MediaQuery.of(context).size.shortestSide * 0.3,
-                            chartValuesOptions: const ChartValuesOptions(
-                              showChartValuesInPercentage: true,
-                              decimalPlaces: 1,
-                            ),
-                          ),
-                          const SizedBox(height: 30),
-                        ],
-                      ),
-                    ),
-
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        children: [
-                          const Text("ホーム画面の固定費ページで種類に\n『貯金』と入力して管理"),
                           const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              SizedBox(
-                                width: 200,
-                                child: TextField(
-                                  controller: goalController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                      focusedBorder: UnderlineInputBorder(
-                                        borderSide:
-                                            BorderSide(color: Colors.cyan),
-                                      ),
-                                      labelText: "目標額を入力",
-                                      floatingLabelStyle:
-                                          TextStyle(color: Colors.cyan[800])),
-                                  cursorColor: Colors.cyan[800],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              ElevatedButton(
-                                onPressed: () {
-                                  final newGoal =
-                                      double.tryParse(goalController.text) ?? 0;
-                                  ref
-                                      .read(savingsGoalProvider.notifier)
-                                      .setGoal(newGoal);
-                                },
-                                child: Text("保存",
-                                    style: TextStyle(color: Colors.cyan[800])),
-                              ),
-                              const SizedBox(width: 16),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 40.0),
-                            child: Column(
-                              children: [
-                                const SizedBox(height: 16),
-                                _buildFixedRow("目標貯金額:", savingsGoal),
-                                // 過去+今月 => 貯金総額
-                                FutureBuilder<double>(
-                                  future: _futurePastSavingSum,
-                                  builder: (ctx, snap) {
-                                    if (snap.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return const Padding(
-                                        padding: EdgeInsets.all(8.0),
-                                        child: CircularProgressIndicator(),
-                                      );
-                                    }
-                                    if (snap.hasError) {
-                                      return Text("貯金総額の取得失敗: ${snap.error}");
-                                    }
-                                    final pastSaving = snap.data ?? 0.0;
-                                    final totalSaving =
-                                        pastSaving + savingsTotal;
-                                    return Padding(
-                                      padding: const EdgeInsets.only(top: 8.0),
-                                      child:
-                                          _buildFixedRow("貯金の総額:", totalSaving),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 8),
-                                _buildFixedRow("当月貯金額:", savingsTotal),
-                                const SizedBox(height: 8),
-                              ],
-                            ),
-                          ),
+                          _buildFixedRow("当月貯金額:", savingsTotal),
+                          const SizedBox(height: 8),
                         ],
-                      ),
-                    ),
-                    // メダルグリッド
-                    Card(
-                      margin: const EdgeInsets.all(16),
-                      child: SizedBox(
-                        height: 400,
-                        child: GridView.count(
-                          crossAxisCount: 3,
-                          childAspectRatio: 1,
-                          children:
-                              last24.map((m) => buildMedalCell(m)).toList(),
-                        ),
                       ),
                     ),
                   ],
                 ),
               ),
+
+              // メダル表示: Grid
+              Card(
+                margin: const EdgeInsets.all(16),
+                child: SizedBox(
+                  height: 400,
+                  child: GridView.count(
+                    crossAxisCount: 3,
+                    childAspectRatio: 1,
+                    children: last24.map((m) => buildMedalCell(m)).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  // ★ 新規追加: プラン状況を表示するCard
   Widget _buildPlanStatusCard(String subscriptionStatus) {
     final planName = getLocalizedPlanName(subscriptionStatus);
     return Card(
@@ -317,13 +299,14 @@ class _MyPageState extends ConsumerState<MyPage> {
     );
   }
 
-  // すでに存在している getLocalizedPlanName
   String getLocalizedPlanName(String planName) {
     switch (planName) {
       case "basic":
         return "ベーシックプラン";
       case "premium":
         return "プレミアムプラン";
+      case "cancellation_pending":
+        return "退会処理中プラン";
       default:
         return "無料プラン";
     }
@@ -336,10 +319,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       },
       child: const Text(
         "無料プランでは\nこの機能は利用できません",
-        style: TextStyle(
-          fontSize: 24,
-          color: Colors.grey,
-        ),
+        style: TextStyle(fontSize: 24, color: Colors.grey),
         textAlign: TextAlign.center,
       ),
     );
@@ -348,7 +328,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   void _showUpgradeDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: false, // 画面外タップで閉じなくするならtrue→false
+      barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text("プレミアムプランにアップグレード"),
@@ -356,18 +336,16 @@ class _MyPageState extends ConsumerState<MyPage> {
           actions: [
             TextButton(
               onPressed: () {
-                // ★ ダイアログだけ閉じる
                 Navigator.pop(dialogContext);
               },
               child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800])),
             ),
             TextButton(
               onPressed: () {
-                // ★ ダイアログを閉じてから 課金プラン画面へ
                 Navigator.pop(dialogContext);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => SubscriptionPage()),
+                  MaterialPageRoute(builder: (_) => const SubscriptionPage()),
                 );
               },
               child: Text("課金プランを確認する", style: TextStyle(color: Colors.cyan[800])),
@@ -383,35 +361,19 @@ class _MyPageState extends ConsumerState<MyPage> {
     String label;
     switch (medal.type) {
       case MedalType.gold:
-        medalWidget = const Icon(
-          Icons.workspace_premium,
-          color: Colors.amber,
-          size: 32,
-        );
+        medalWidget = const Icon(Icons.workspace_premium, color: Colors.amber, size: 32);
         label = "金";
         break;
       case MedalType.silver:
-        medalWidget = const Icon(
-          Icons.workspace_premium,
-          color: Colors.grey,
-          size: 32,
-        );
+        medalWidget = const Icon(Icons.workspace_premium, color: Colors.grey, size: 32);
         label = "銀";
         break;
       case MedalType.bronze:
-        medalWidget = const Icon(
-          Icons.workspace_premium,
-          color: Colors.brown,
-          size: 32,
-        );
+        medalWidget = const Icon(Icons.workspace_premium, color: Colors.brown, size: 32);
         label = "銅";
         break;
       default:
-        medalWidget = const Icon(
-          Icons.sentiment_neutral,
-          color: Colors.grey,
-          size: 32,
-        );
+        medalWidget = const Icon(Icons.sentiment_neutral, color: Colors.grey, size: 32);
         label = "未達成";
         break;
     }
@@ -436,30 +398,20 @@ class _MyPageState extends ConsumerState<MyPage> {
         children: [
           SizedBox(
             width: 80,
-            child: Text(
-              label,
-              textAlign: TextAlign.left,
-              style: const TextStyle(fontSize: 14),
-            ),
+            child: Text(label, textAlign: TextAlign.left, style: const TextStyle(fontSize: 14)),
           ),
           SizedBox(
             width: 110,
             child: Text(
-              textAlign: TextAlign.end,
               formattedAmount,
-              style: const TextStyle(
-                fontSize: 14,
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontSize: 14, fontFeatures: [FontFeature.tabularFigures()]),
             ),
           ),
           Container(
             width: 20,
             alignment: Alignment.centerLeft,
-            child: const Text(
-              "円",
-              style: TextStyle(fontSize: 14),
-            ),
+            child: const Text("円", style: TextStyle(fontSize: 14)),
           ),
         ],
       ),

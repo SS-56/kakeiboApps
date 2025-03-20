@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yosan_de_kakeibo/firebase_options.dart';
 import 'package:yosan_de_kakeibo/opening_screen.dart';
 import 'package:yosan_de_kakeibo/views/my_page/my_setting_page.dart';
 import 'providers/page_providers.dart';
@@ -14,7 +15,7 @@ import 'views/settings/setting_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform,);
   print("Firebase 初期化完了");
 
   // SharedPreferences 初期化
