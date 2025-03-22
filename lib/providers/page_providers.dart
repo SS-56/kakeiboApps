@@ -155,17 +155,17 @@ class StartDayNotifier extends StateNotifier<int> {
   }
 }
 
-// 通知設定プロバイダー
-final notificationSettingProvider = StateNotifierProvider<NotificationSettingNotifier, bool>((ref) {
-  return NotificationSettingNotifier();
-});
-
-class NotificationSettingNotifier extends StateNotifier<bool> {
-  NotificationSettingNotifier() : super(false); // 初期値は通知オフ
-  void toggleNotification(bool value) {
-    state = value; // 状態を更新
-  }
-}
+// // 通知設定プロバイダー
+// final notificationSettingProvider = StateNotifierProvider<NotificationSettingNotifier, bool>((ref) {
+//   return NotificationSettingNotifier();
+// });
+//
+// class NotificationSettingNotifier extends StateNotifier<bool> {
+//   NotificationSettingNotifier() : super(false); // 初期値は通知オフ
+//   void toggleNotification(bool value) {
+//     state = value; // 状態を更新
+//   }
+// }
 
 // データバックアッププロバイダー
 final dataBackupProvider = StateNotifierProvider<DataBackupNotifier, bool>((ref) {
