@@ -83,9 +83,9 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      _checkSubscriptionStatus();
-    }
+    // if (state == AppLifecycleState.resumed) {
+    //   _checkSubscriptionStatus();
+    // }
   }
 
   // ストア使用可かどうか + productId問い合わせ
@@ -461,3 +461,4 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
     );
   }
 }
+
