@@ -211,7 +211,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                         DateTime.now(); // 日付リセット
                   }
                 },
-                useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
+                useDayOfMonthPicker: !settings.useCalendarForIncomeFixed && isPaidUser,
               ),
             ),
           ],

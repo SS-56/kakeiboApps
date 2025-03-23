@@ -115,7 +115,7 @@ class SettingsPage extends ConsumerWidget {
                 TextStyle(color: isPaidUser ? Colors.black : Colors.grey),
               ),
               trailing: Switch(
-                value: isEveryMonth & isPaidUser,
+                value: isEveryMonth && isPaidUser,
                 onChanged: (bool val) {
                   if (!isPaidUser) {
                     _showUpgradeDialog(context);
@@ -153,7 +153,7 @@ class SettingsPage extends ConsumerWidget {
                 TextStyle(color: isPaidUser ? Colors.black : Colors.grey),
               ),
               trailing: Switch(
-                value: isBimonthly,
+                value: isBimonthly && isPaidUser,
                 onChanged: (bool val) {
                   if (!isPaidUser) {
                     _showUpgradeDialog(context);

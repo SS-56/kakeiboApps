@@ -206,7 +206,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
                         DateTime.now(); // 日付をリセット
                   }
                 },
-                useDayOfMonthPicker: !settings.useCalendarForIncomeFixed,
+                useDayOfMonthPicker: !settings.useCalendarForIncomeFixed && isPaidUser,
               ),
             ),
           ],
