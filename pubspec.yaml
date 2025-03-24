@@ -57,6 +57,11 @@ dependencies:
   pub_semver: ^2.1.0
   logger: ^2.5.0
 
+  flutter_launcher_icons: ^0.14.3
+
+flutter_icons:
+  ios: true
+  image_path: "images/ios_icon.png"
 
 dev_dependencies:
   flutter_test:
