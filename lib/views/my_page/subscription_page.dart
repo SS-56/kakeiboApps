@@ -34,25 +34,25 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
   };
 
   @override
-  @override
   void initState() {
     super.initState();
-    _loadData(); // データロードとUI更新を分離
+    _inAppPurchase = InAppPurchase.instance;
+    _subscription = _inAppPurchase.purchaseStream.listen(_listenToPurchaseUpdated,
+        onDone: () => print('[DEBUG] Purchase stream closed'),
+        onError: (error) => print('[ERROR] Purchase stream error: $error'));
+    _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() {
-      _isLoading = true; // データロード開始時にインジケーター表示
+      _isLoading = true;
     });
 
-    // Firebase からデータを取得
     await ref.read(subscriptionStatusProvider.notifier).syncWithFirebase();
-
-    // データ取得が完了するまで遅延
-    await Future.delayed(const Duration(milliseconds: 500)); // 必要に応じて調整
+    await _loadProducts(); // InAppPurchase の初期化後に呼び出す
 
     setState(() {
-      _isLoading = false; // データロード完了時にインジケーター非表示
+      _isLoading = false;
     });
   }
 
