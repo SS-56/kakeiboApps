@@ -133,6 +133,8 @@ Future<void> finalizeMonth(WidgetRef ref) async {
       fixedCosts: fixedCosts,
       expenses: expenses,
     );
+    // 全データ削除後に、購読状態も無料にリセットする
+    await ref.read(subscriptionStatusProvider.notifier).resetToFree();
 
     // userTriggeredをオフにして終了
     await sp.setBool('isUserTriggeredFinalize', false);

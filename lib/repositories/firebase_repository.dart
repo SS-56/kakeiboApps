@@ -2,14 +2,18 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
 import 'package:yosan_de_kakeibo/models/income.dart';
 import 'package:yosan_de_kakeibo/services/firebase_service.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 
 class FirebaseRepository {
   final FirebaseService _firebaseService = FirebaseService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// 課金プラン取得（リトライ付き）
   Future<String?> getSubscriptionPlanWithRetry(String userId) async {
@@ -17,8 +21,8 @@ class FirebaseRepository {
     const maxRetries = 3;
     while (retryCount < maxRetries) {
       try {
-        final data = await _firebaseService.getDocument('subscriptions', userId);
-        return data?['plan'] as String?;
+        final data = await _firebaseService.getDocument('users', userId); //修正
+        return data?['planId'] as String?; //修正
       } catch (e) {
         retryCount++;
         print("リトライ: $retryCount / $maxRetries");
@@ -34,10 +38,14 @@ class FirebaseRepository {
   /// ====== 既存のメソッド ======
   Future<void> saveExpense(Expense expense) => _firebaseService.saveExpense(expense);
   Future<void> saveIncome(Income income) => _firebaseService.saveIncome(income);
-  Future<void> saveFixedCost(FixedCost fixedCost) => _firebaseService.saveFixedCost(fixedCost);
+  Future<void> saveFixedCost(FixedCost fixedCost) =>
+      _firebaseService.saveFixedCost(fixedCost);
 
   Future<void> saveIncomeCard(Income income) async {
-    await _firestore.collection('saved_income').doc(income.id).set(income.toJson());
+    await _firestore
+        .collection('saved_income')
+        .doc(income.id)
+        .set(income.toJson());
   }
 
   Future<List<Income>> getSavedIncomeCards() async {
@@ -46,7 +54,10 @@ class FirebaseRepository {
   }
 
   Future<void> saveFixedCostCard(FixedCost cost) async {
-    await _firestore.collection('saved_fixed_costs').doc(cost.id).set(cost.toJson());
+    await _firestore
+        .collection('saved_fixed_costs')
+        .doc(cost.id)
+        .set(cost.toJson());
   }
 
   Future<List<FixedCost>> getSavedFixedCostCards() async {
@@ -70,10 +81,10 @@ class FirebaseRepository {
         .doc(yyyyMM);
 
     final data = {
-      'incomes'   : incomes.map((e) => e.toJson()).toList(),
+      'incomes': incomes.map((e) => e.toJson()).toList(),
       'fixedCosts': fixedCosts.map((e) => e.toJson()).toList(),
-      'expenses'  : expenses.map((e) => e.toJson()).toList(),
-      'timestamp' : FieldValue.serverTimestamp(),
+      'expenses': expenses.map((e) => e.toJson()).toList(),
+      'timestamp': FieldValue.serverTimestamp(),
     };
     if (metadata != null) {
       data['metadata'] = metadata;
@@ -143,15 +154,99 @@ class FirebaseRepository {
     }
     return result;
   }
+
   Future<UserCredential?> signInWithApple() async {
     final appleProvider = AppleAuthProvider();
     try {
-      final userCredential = await FirebaseAuth.instance.signInWithProvider(appleProvider);
+      final userCredential =
+      await FirebaseAuth.instance.signInWithProvider(appleProvider);
       return userCredential;
     } catch (e) {
       print("Appleでの認証エラー: $e");
       rethrow;
     }
+  }
+
+  // ====== 追加されたメソッド ======
+  Future<void> markUserAsSubscribed(String planId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('User not logged in.');
+    }
+    try {
+      await _firestore.collection('users').doc(user.uid).update({
+        'subscription_plan': planId,
+        'subscription_date': DateTime.now(),
+      });
+    } catch (e) {
+      // エラーハンドリング
+      print('FirebaseRepository.markUserAsSubscribed error: $e');
+      throw Exception('Failed to update user subscription status.');
+    }
+  }
+
+  Future<void> markUserAsUnsubscribed() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('User not logged in.');
+    }
+    // subscription_plan フィールドを null に設定 (または削除)
+    await _firestore.collection('users').doc(user.uid).set(
+      {'subscription_plan': null},
+      SetOptions(merge: true),
+    );
+    // または
+    // await _firestore.collection('users').doc(user.uid).update({
+    //   'subscription_plan': FieldValue.delete(),
+    // });
+  }
+
+  // サブスクリプションプランを取得
+  Future<String?> getSubscriptionPlan(String userId) async {
+    final doc = await _firestore.collection('users').doc(userId).get();
+    if (doc.exists) {
+      // subscription_plan フィールドが存在し、その値が文字列であることを確認
+      final data = doc.data();
+      if (data != null && data.containsKey('subscription_plan')) {
+        final plan = data['subscription_plan'];
+        if (plan is String) {
+          return plan;
+        } else if (plan == null) {
+          return null; // subscription_plan が null の場合
+        } else {
+          print('Error: subscription_plan is not a String');
+          return null; // 型が不正な場合は null を返す (または例外をスロー)
+        }
+      }
+    }
+    return null; // ドキュメントが存在しない、または subscription_plan フィールドがない
+  }
+
+  Future<String?> fetchSubscriptionPlan() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      // ログインしていない場合は null を返す (または適切なエラー処理)
+      return null;
+    }
+
+    try {
+      final docSnapshot =
+      await _firestore.collection('users').doc(user.uid).get();
+      if (docSnapshot.exists) {
+        return docSnapshot.data()?['subscription_plan'] as String?;
+      } else {
+        // ドキュメントが存在しない場合は null を返す (または適切なエラー処理)
+        return null;
+      }
+    } catch (e) {
+      // エラー処理 (ログ出力、エラーを返すなど)
+      print('Error fetching subscription plan: $e');
+      return null; // または、エラーを示す特別な値を返す
+    }
+  }
+
+  Future<void> recordRestoredPurchase(PurchaseDetails restoredPurchase) async {
+    return _firebaseService.recordRestoredPurchase(restoredPurchase);
   }
 }
 

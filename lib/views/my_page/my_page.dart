@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:ui'; // FontFeatureを使うのに必要
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:intl/intl.dart';
 import 'package:pie_chart/pie_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +16,9 @@ import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
 import 'package:yosan_de_kakeibo/views/my_page/history_page.dart';
 import 'package:yosan_de_kakeibo/views/my_page/subscription_page.dart';
+import 'package:in_app_purchase/in_app_purchase.dart'; // 追加
+import 'dart:async'; // 追加
+
 
 // すでに用意済みのマイ設定ページを import
 import 'package:yosan_de_kakeibo/views/my_page/my_setting_page.dart';
@@ -27,14 +32,42 @@ class MyPage extends ConsumerStatefulWidget {
 
 class _MyPageState extends ConsumerState<MyPage> {
   Future<double>? _futurePastSavingSum;
+  late StreamSubscription<List<PurchaseDetails>> _subscription; // 追加
 
   @override
   void initState() {
     super.initState();
+    // まず最新の購読状態を同期する
+    ref.read(subscriptionStatusProvider.notifier).syncWithFirebase();
+
     final subStatus = ref.read(subscriptionStatusProvider);
     if (subStatus == 'basic' || subStatus == 'premium') {
-      // 過去の貯金合計 (Firebase)
       _futurePastSavingSum = _fetchPastSavings();
+    }
+    final Stream<List<PurchaseDetails>> purchaseStream = InAppPurchase.instance.purchaseStream;
+    _subscription = purchaseStream.listen((purchases) {
+      _handlePurchases(purchases);
+    });
+  }
+
+  @override
+  void dispose() { // 追加
+    _subscription.cancel(); // 追加
+    super.dispose(); // 追加
+  }
+
+  void _handlePurchases(List<PurchaseDetails> purchases) async {
+    if (purchases.isNotEmpty) {
+      final purchase = purchases.first;
+      if (purchase.status == PurchaseStatus.purchased) {
+        if (purchase.productID == 'com.gappson56.yosandekakeibo.basicPlan') {
+          ref.read(subscriptionStatusProvider.notifier).setSubscriptionStatus('basic');
+          // 課金成功時の処理（例：Firebaseに課金情報を保存、UIを更新など）
+        }
+      } else if (purchase.status == PurchaseStatus.error) {
+        // 課金エラー時の処理（例：エラーメッセージを表示）
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('課金エラー: ${purchase.error!.message}')));
+      }
     }
   }
 
@@ -306,7 +339,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       case "premium":
         return "プレミアムプラン";
       case "cancellation_pending":
-        return "退会処理中プラン";
+        return "退会処理中";
       default:
         return "無料プラン";
     }

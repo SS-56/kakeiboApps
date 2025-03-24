@@ -1,10 +1,12 @@
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:yosan_de_kakeibo/models/expense.dart';
 import 'package:yosan_de_kakeibo/models/fixed_cost.dart';
 import 'package:yosan_de_kakeibo/models/income.dart';
+
 
 class FirebaseService {
   final FirebaseRemoteConfig _remoteConfig = FirebaseRemoteConfig.instance;
@@ -96,5 +98,44 @@ class FirebaseService {
   Future<void> saveFixedCost(FixedCost fixedCost) async {
     final data = fixedCost.toJson();
     await _firestore.collection('fixed_costs').add(data);
+  }
+
+  Future<bool> isUserCurrentlySubscribed() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await _firestore.collection('user').doc(user.uid).get();
+      if (userDoc.exists && userDoc.data() != null) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final bool isSubscribed = userData['isSubscribed'] ?? false;
+        final Timestamp? expiryDate = userData['subscriptionExpiry'];
+        if (isSubscribed && expiryDate != null && expiryDate.toDate().isAfter(DateTime.now())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  Future<void> markUserAsSubscribed(PurchaseDetails purchaseDetails) async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      DateTime expiry = DateTime.now().add(const Duration(days: 31)); // 例：1ヶ月後 - 実際には検証から取得
+      await _firestore.collection('user').doc(user.uid).update({
+        'isSubscribed': true,
+        'subscriptionExpiry': expiry,
+      });
+    }
+  }
+
+  Future<void> recordRestoredPurchase(PurchaseDetails restoredPurchase) async {
+    User? user = _auth.currentUser;
+    if (user != null && restoredPurchase.productID == 'com.gappson56.yosandekakeibo.basicPlan') {
+      DateTime expiry = DateTime.now().add(const Duration(days: 31)); // 例：1ヶ月後 - 実際には検証から取得
+      await _firestore.collection('user').doc(user.uid).update({
+        'isSubscribed': true,
+        'subscriptionExpiry': expiry,
+      });
+      print('購入を復元しました (Firebaseに記録)。');
+    }
   }
 }

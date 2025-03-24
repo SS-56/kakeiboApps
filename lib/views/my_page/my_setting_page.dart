@@ -136,6 +136,9 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
       case "premium":
         localizedPlanName = "プレミアムプラン";
         break;
+      case "cancellation_pending":
+        localizedPlanName = "退会処理中";
+        break;
       default:
         localizedPlanName = "無料プラン";
         break;

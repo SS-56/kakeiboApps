@@ -2,29 +2,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:yosan_de_kakeibo/repositories/firebase_repository.dart';
+import 'dart:io';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
-final subscriptionStatusProvider = StateNotifierProvider<SubscriptionStatusViewModel, String>(
-      (ref) => SubscriptionStatusViewModel(),
+final subscriptionStatusProvider =
+StateNotifierProvider<SubscriptionStatusViewModel, String>(
+      (ref) => SubscriptionStatusViewModel(ref),
 );
 
 class SubscriptionStatusViewModel extends StateNotifier<String> {
-  // === 既存の定数 ===
   static const String free = 'free';
   static const String basic = 'basic';
   static const String premium = 'premium';
-
-  // 退会処理中ステータス
   static const String cancellationPending = 'cancellation_pending';
+  bool _isCancellingProcessing = false;  // 退会処理中フラグ
 
   late final InAppPurchase _inAppPurchase;
-  bool _hasActivePlan = false;
+  final Ref ref;
+  String? currentPlanId;
 
-  SubscriptionStatusViewModel() : super(free) {
-    print('[DEBUG] SubscriptionStatusViewModel constructor => initial state=free');
-
+  SubscriptionStatusViewModel(this.ref) : super(free) {
     _inAppPurchase = InAppPurchase.instance;
-
-    // ★ 購入ストリームをリッスン (ここが重要)
     _inAppPurchase.purchaseStream.listen(
       _listenToPurchaseUpdated,
       onDone: () => print('[DEBUG] Purchase Stream Done'),
@@ -32,62 +33,75 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
         print('[ERROR] Purchase Stream Error: $error');
       },
     );
-
-    // 起動時に保存された課金状態をロード
     loadStatus();
   }
 
-  /// 起動時に保存された課金状態をロード
   Future<void> loadStatus() async {
     final sp = await SharedPreferences.getInstance();
     final loadedValue = sp.getString('subscription_plan') ?? free;
-
+    currentPlanId = loadedValue;
     print('[DEBUG] loadStatus => loadedValue=$loadedValue');
-
-    /*
-    // ★★★ 修正: _checkPastPurchasesEmpty() を呼び出す部分をコメントアウト ★★★
-    // final noSubscriptionOnStore = await _checkPastPurchasesEmpty();
-    // if (noSubscriptionOnStore) {
-    //   // ストアに契約なし => 常にfree優先
-    //   state = 'free';
-    //   await sp.setString('subscription_plan', 'free');
-    //   return;
-    // }
-    */
-
-    // 既存のロジックを尊重し、_hasActivePlanは後段の購入処理で更新
-    state = loadedValue;
+    await syncWithFirebase();
   }
 
-  /// 課金ストリームからのイベントをハンドリング
+  void setSubscriptionStatus(String status) {
+    state = status;
+  }
+
+  Future<void> syncWithFirebase() async {
+    // SharedPreferences からローカルの購読状態を取得
+    final sp = await SharedPreferences.getInstance();
+    final localState = sp.getString('subscription_plan') ?? free;
+    print('[DEBUG] syncWithFirebase - local state: $localState');
+
+    // ユーザーが未ログインの場合は同期処理をスキップ
+    if (FirebaseAuth.instance.currentUser == null) {
+      print('[DEBUG] syncWithFirebase - ユーザー未ログインのため、同期をスキップします。');
+      state = localState;
+      currentPlanId = localState;
+      return;
+    }
+
+    final firebaseRepo = ref.read(firebaseRepositoryProvider);
+    final firebasePlan = await firebaseRepo.fetchSubscriptionPlan();
+    print('[DEBUG] syncWithFirebase - Firebase plan: $firebasePlan');
+
+    // Firebaseから値がある場合のみローカルを更新、nullの場合はローカル状態をそのまま維持
+    if (firebasePlan != null) {
+      await sp.setString('subscription_plan', firebasePlan);
+      state = firebasePlan;
+      currentPlanId = firebasePlan;
+      print('[DEBUG] syncWithFirebase - Updated local state to: $firebasePlan');
+    } else {
+      state = localState;
+      currentPlanId = localState;
+      print('[DEBUG] syncWithFirebase - Firebase plan is null, preserving local state: $localState');
+    }
+
+    print('[DEBUG] syncWithFirebase - Final shared_preferences: ${sp.getString('subscription_plan')}');
+    print('[DEBUG] syncWithFirebase - Final state: $state');
+  }
+
+  // 退会処理中フラグをセットするメソッド（外部からも呼び出せるようにする場合）
+  void setCancellingProcessing(bool value) {
+    _isCancellingProcessing = value;
+  }
+
   void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) {
+    // 退会処理中なら購入イベントは無視する
+    if (_isCancellingProcessing) {
+      print('[DEBUG] 退会処理中のため、purchaseStream のイベントを無視します。');
+      return;
+    }
     for (final purchaseDetails in purchaseDetailsList) {
       if (purchaseDetails.status == PurchaseStatus.pending) {
-        print('[DEBUG] Purchase pending: ${purchaseDetails.productID}');
+        print("課金処理中:${purchaseDetails.productID}");
       } else if (purchaseDetails.status == PurchaseStatus.purchased ||
           purchaseDetails.status == PurchaseStatus.restored) {
-
-        // ★ もし現在のステータスが "cancellation_pending" なら無視
-        if (state == cancellationPending) {
-          print('[DEBUG] Status is cancellation_pending -> ignore event');
-          continue;
-        }
-
-        _hasActivePlan = true;
-
-        // productID → planId 変換
-        String planId = free;
-        if (purchaseDetails.productID == 'com.gappson56.yosandekakeibo.basicPlan') {
-          planId = basic;
-        } else if (purchaseDetails.productID == 'com.gappson56.yosandekakeibo.premiumPlan') {
-          planId = premium;
-        }
-
-        print('[DEBUG] Purchase success: $planId');
-        saveStatus(planId);
-
+        _handlePurchaseSuccess(purchaseDetails);
       } else if (purchaseDetails.status == PurchaseStatus.error) {
-        print('[ERROR] Purchase error: ${purchaseDetails.error?.message}');
+        print("課金エラー:${purchaseDetails.error}");
+        _handlePurchaseError(purchaseDetails);
       }
 
       if (purchaseDetails.pendingCompletePurchase) {
@@ -96,64 +110,158 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
     }
   }
 
-  // /// 【既存コード・文言は削除しない】 .queryPastPurchases() が未定義ならビルドエラーになるため、呼び出しをコメントアウト済
-  // Future<bool> _checkPastPurchasesEmpty() async {
-  //   final bool isAvailable = await InAppPurchase.instance.isAvailable();
-  //   if (!isAvailable) {
-  //     // ストアが利用不可なら判断不能 -> false(契約無いと断言できない)
-  //     return false;
-  //   }
-  //   try {
-  //     final qpp = await InAppPurchase.instance.queryPastPurchases();
-  //     if (qpp.error != null) {
-  //       // 取得エラー -> false(断言できない)
-  //       return false;
-  //     }
-  //     // 「全く購入履歴がない」 => true
-  //     return qpp.pastPurchases.isEmpty;
-  //   } catch (e) {
-  //     print('[ERROR] queryPastPurchases failed or not found: $e');
-  //     return false;
-  //   }
-  // }
+  Future<void> _handleCancellation() async {
+    final subscriptionNotifier = ref.read(subscriptionStatusProvider.notifier);
+    // 退会処理開始前にフラグを立てる
+    subscriptionNotifier.setCancellingProcessing(true);
 
-  // 課金状態を保存
+    final firebaseRepo = ref.read(firebaseRepositoryProvider);
+    try {
+      await firebaseRepo.markUserAsUnsubscribed();
+      await subscriptionNotifier.saveStatus(SubscriptionStatusViewModel.free);
+      print('[DEBUG] _handleCancellation => set status to free');
+    } catch (e) {
+      print('[ERROR] _handleCancellation error: $e');
+      // エラーハンドリング（必要に応じて）
+    } finally {
+      // 退会処理が完了したら、一定時間後またはすぐにフラグをクリアする
+      Future.delayed(Duration(seconds: 2), () {
+        subscriptionNotifier.setCancellingProcessing(false);
+        print('[DEBUG] 退会処理完了、フラグをクリア');
+      });
+    }
+  }
+
+
+  Future<bool> _isPurchased(String planId) async {
+    final sp = await SharedPreferences.getInstance();
+    final currentPlan = sp.getString('subscription_plan');
+    return currentPlan == planId;
+  }
+
+  Future<void> _handlePurchaseSuccess(PurchaseDetails purchaseDetails) async {
+    final pid = purchaseDetails.productID;
+    String planId = free;
+    if (pid == 'com.gappson56.yosandekakeibo.basicPlan') {
+      planId = basic;
+    } else if (pid == 'com.gappson56.yosandekakeibo.premiumPlan') {
+      planId = premium;
+    }
+
+    // 既に退会処理中なら、購入イベントによる状態変更をスキップする
+    if (state == cancellationPending) {
+      print('[DEBUG] _handlePurchaseSuccess: 現在 cancellation_pending 状態のため、更新を無視します。');
+      return;
+    }
+
+    // 既に同じプランである場合は何もしない
+    if (await _isPurchased(planId)) {
+      if (purchaseDetails.pendingCompletePurchase) {
+        await _inAppPurchase.completePurchase(purchaseDetails);
+      }
+      return;
+    }
+
+    // ローカルの購読状態を更新
+    await saveStatus(planId);
+    print("課金プラン:$planId に更新");
+
+    // Firebaseへの更新はログイン状態なら実施
+    if (FirebaseAuth.instance.currentUser != null) {
+      final firebaseRepo = ref.read(firebaseRepositoryProvider);
+      try {
+        await firebaseRepo.markUserAsSubscribed(planId);
+      } catch (e) {
+        print('[ERROR] _handlePurchaseSuccess - markUserAsSubscribed error: $e');
+      }
+    } else {
+      print('[WARN] ユーザーがログインしていないため、Firebaseへの更新はスキップします。');
+    }
+  }
+
+  void _handlePurchaseError(PurchaseDetails purchaseDetails) {
+    if (purchaseDetails.error == null) {
+      return;
+    }
+
+    if (Platform.isAndroid && purchaseDetails is GooglePlayPurchaseDetails) {
+      if (purchaseDetails.error!.code == "userCancelled") {
+        print('[DEBUG] User cancelled the purchase on Android (Unified)');
+        _handleCancellation();
+      }
+    }
+
+    if (Platform.isIOS && purchaseDetails is AppStorePurchaseDetails) {
+      if (purchaseDetails.error!.code == "paymentCancelled") {
+        print('[DEBUG] User cancelled the purchase on iOS (Unified)');
+        _handleCancellation();
+      }
+    }
+
+    if (Platform.isIOS && purchaseDetails is AppStorePurchaseDetails) {
+      if (purchaseDetails.error!.code == "storekit_duplicate_product_object") {
+        print('[ERROR] Duplicate product object error. Trying to complete purchase...');
+      }
+    }
+    print('[ERROR] Unhandled purchase error: ${purchaseDetails.error}');
+
+    if (purchaseDetails.pendingCompletePurchase) {
+      _inAppPurchase.completePurchase(purchaseDetails);
+    }
+  }
+
+  bool get isCancellationPending => state == cancellationPending;
+
+  Future<bool> isCancellationPendingCheck() async {
+    final prefs = await SharedPreferences.getInstance();
+    final spPlan = prefs.getString('subscription_plan');
+    return spPlan == cancellationPending;
+  }
+
   Future<void> saveStatus(String status) async {
     print('[DEBUG] saveStatus called with status=$status');
+    // すでに cancellation_pending 状態なら、「basic」への更新は無視する
+    if (state == cancellationPending && status == basic) {
+      print('[DEBUG] saveStatus: 現在 cancellation_pending 状態のため、basic への更新を無視します。');
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('subscription_plan', status);
-    print('[DEBUG] loadStatus => loadedValue=$loadStatus');
-    state = status; // 状態を更新
-    print('[DEBUG] loadStatus => new state=$state');
+    state = status;
+    currentPlanId = status;
   }
+
 
   void updateStatus(String newStatus, WidgetRef ref) {
     state = newStatus;
-
-    // ★ 既存機能: もしfreeになったらSettingsを初期化
+    currentPlanId = newStatus;
     if (newStatus == free) {
       ref.read(settingsViewModelProvider.notifier).resetToDefaultSettings();
     }
   }
 
-  // 全データをリセットして free に戻す
   Future<void> resetToFree() async {
     final prefs = await SharedPreferences.getInstance();
+    final firebaseRepo = ref.read(firebaseRepositoryProvider);
 
-    await prefs.clear(); // 全データ削除
+    try {
+      await firebaseRepo.markUserAsUnsubscribed();
+    } catch (e) {
+      print('[ERROR] resetToFree - markUserAsUnsubscribed error: $e');
+      // エラーハンドリング（必要に応じて）
+    }
+
+    await prefs.clear();
     await prefs.setString('subscription_plan', free);
 
     state = free;
+    currentPlanId = free;
     print('[DEBUG] Reset to free');
   }
 
-  // UI関連のロジック例 (既存)
   bool isPremium() => state == premium;
   bool isPaidUser() => state == premium || state == basic;
   bool isFree() => state == free;
-
-  // 退会処理中判定
-  bool isCancellationPending() => state == cancellationPending;
 
   String getDisplayMessage() {
     if (state == premium) {
@@ -163,7 +271,6 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
     } else if (state == cancellationPending) {
       return "退会処理中(次回更新まで有効)";
     } else {
-      // free
       return "現在、無料プランをご利用中です";
     }
   }
