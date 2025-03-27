@@ -148,13 +148,34 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
       planId = premium;
     }
 
-    // 既に退会処理中なら、購入イベントによる状態変更をスキップする
-    if (state == cancellationPending) {
-      print('[DEBUG] _handlePurchaseSuccess: 現在 cancellation_pending 状態のため、更新を無視します。');
+    // もし復元イベント（restored）なら強制更新を行う
+    if (purchaseDetails.status == PurchaseStatus.restored) {
+      // Firebaseへの更新（ログイン状態なら）
+      if (FirebaseAuth.instance.currentUser != null) {
+        final firebaseRepo = ref.read(firebaseRepositoryProvider);
+        try {
+          await firebaseRepo.markUserAsSubscribed(planId);
+          print('[DEBUG] (Restore) Firebase上のサブスクリプション状態を更新しました: $planId');
+        } catch (e) {
+          print('[ERROR] markUserAsSubscribed (restore) 失敗: $e');
+        }
+      } else {
+        print('[WARN] ユーザーがログインしていないため、Firebaseへの更新はスキップします。');
+      }
+      // force:true で状態更新（これにより cancellation_pending のガードを回避）
+      await saveStatus(planId, force: true);
+      print("課金プラン (restored): $planId に強制更新");
       return;
     }
 
-    // 既に同じプランである場合は何もしない
+    // 通常の購入の場合、現在が cancellation_pending なら更新を無視する
+    if (purchaseDetails.status == PurchaseStatus.purchased &&
+        state == cancellationPending) {
+      print('[DEBUG] _handlePurchaseSuccess: 現在 cancellation_pending 状態のため、購入更新は無視します。');
+      return;
+    }
+
+    // 既に同じプランなら何もしない
     if (await _isPurchased(planId)) {
       if (purchaseDetails.pendingCompletePurchase) {
         await _inAppPurchase.completePurchase(purchaseDetails);
@@ -162,11 +183,10 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
       return;
     }
 
-    // ローカルの購読状態を更新
+    // 通常の更新処理
     await saveStatus(planId);
     print("課金プラン:$planId に更新");
 
-    // Firebaseへの更新はログイン状態なら実施
     if (FirebaseAuth.instance.currentUser != null) {
       final firebaseRepo = ref.read(firebaseRepositoryProvider);
       try {
@@ -178,6 +198,7 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
       print('[WARN] ユーザーがログインしていないため、Firebaseへの更新はスキップします。');
     }
   }
+
 
   void _handlePurchaseError(PurchaseDetails purchaseDetails) {
     if (purchaseDetails.error == null) {
@@ -218,10 +239,10 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
     return spPlan == cancellationPending;
   }
 
-  Future<void> saveStatus(String status) async {
-    print('[DEBUG] saveStatus called with status=$status');
-    // すでに cancellation_pending 状態なら、「basic」への更新は無視する
-    if (state == cancellationPending && status == basic) {
+  Future<void> saveStatus(String status, {bool force = false}) async {
+    print('[DEBUG] saveStatus called with status=$status, force=$force');
+    // force==false の場合のみ、現在が cancellation_pending なら basic への更新を無視する
+    if (!force && state == cancellationPending && status == basic) {
       print('[DEBUG] saveStatus: 現在 cancellation_pending 状態のため、basic への更新を無視します。');
       return;
     }
@@ -229,7 +250,9 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
     await prefs.setString('subscription_plan', status);
     state = status;
     currentPlanId = status;
+    print('[DEBUG] saveStatus: state を $state に更新しました。');
   }
+
 
 
   void updateStatus(String newStatus, WidgetRef ref) {

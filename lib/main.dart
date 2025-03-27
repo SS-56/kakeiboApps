@@ -58,6 +58,17 @@ class MyApp extends ConsumerWidget {
         Locale('ja'),
         Locale('en'),
       ],
+      // builder を追加して、画面サイズに応じた textScaleFactor を適用
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        // 画面の短辺の長さが600dp以上なら iPad（タブレット）と判断
+        final bool isTablet = mediaQuery.size.shortestSide >= 600;
+        final double textScaleFactor = isTablet ? 1.5 : 1.0;
+        return MediaQuery(
+          data: mediaQuery.copyWith(textScaleFactor: textScaleFactor),
+          child: child!,
+        );
+      },
       // isAccepted=false => OpeningScreen => 2秒後 my_setting_page
       // isAccepted=true => 従来通り MainScaffold
       home: isAccepted
@@ -98,3 +109,4 @@ class MainScaffold extends ConsumerWidget {
     );
   }
 }
+

@@ -22,9 +22,11 @@ class FullScreenIncomeSection extends ConsumerWidget {
 
     final isPaidUser = ref.watch(
       subscriptionStatusProvider.select((s) =>
-          s == SubscriptionStatusViewModel.basic ||
+      s == SubscriptionStatusViewModel.basic ||
           s == SubscriptionStatusViewModel.premium),
     );
+    // 既存のコードの先頭などで、タブレット判定を追加
+    final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
 
     return Scaffold(
       appBar: AppBar(
@@ -58,98 +60,162 @@ class FullScreenIncomeSection extends ConsumerWidget {
                     itemCount: sortedIncomes.length,
                     itemBuilder: (context, index) {
                       final income = sortedIncomes[index];
-                      return Dismissible(
-                        key: ValueKey(income),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: Icon(Icons.delete, color: Colors.white),
-                        ),
-                        onDismissed: (direction) {
-                          final removedIncome = income;
-                          // 削除処理
-                          ref
-                              .read(incomeViewModelProvider.notifier)
-                              .removeItem(income);
-                          // ★ “元に戻す”用にSnackBarを表示
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${removedIncome.title} を削除しました。'),
-                              duration: const Duration(seconds: 3), // 3秒間だけ表示
-                              action: SnackBarAction(
-                                label: '元に戻す',
-                                onPressed: () {
-                                  // ★ 削除を取り消して再度リストに追加
-                                  ref.read(incomeViewModelProvider.notifier).addItem(removedIncome);
-                                },
+
+                      if (isTablet) {
+                        // タブレット用レイアウト：2カラム表示（左：日付＆タイトル、右：金額＋設定アイコン）
+                        return Dismissible(
+                          key: ValueKey(income),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          onDismissed: (direction) {
+                            final removedIncome = income;
+                            ref.read(incomeViewModelProvider.notifier).removeItem(income);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${removedIncome.title} を削除しました。'),
+                                duration: const Duration(seconds: 3),
+                                action: SnackBarAction(
+                                  label: '元に戻す',
+                                  onPressed: () {
+                                    ref.read(incomeViewModelProvider.notifier).addItem(removedIncome);
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                          child: Card(
+                            color: const Color.fromARGB(255, 255, 255, 255),
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // 左側：日付とタイトル
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      settings.useCalendarForIncomeFixed
+                                          ? Text(
+                                        '${income.date.year}/${income.date.month}/${income.date.day}',
+                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                      )
+                                          : Text(
+                                        '毎月${income.date.day}日',
+                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        income.title,
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
+                                  // 右側：金額と（課金ユーザーなら）設定アイコン
+                                  Row(
+                                    children: [
+                                      Text(
+                                        income.amount.toStringAsFixed(0),
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Text("円"),
+                                      if (isPaidUser)
+                                        IconButton(
+                                          icon: Icon(Icons.settings, color: Colors.cyan[800]),
+                                          onPressed: () => _editIncome(context, ref, income),
+                                        ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                          );
-                        },
-                        child: Card(
-                          color: Color.fromARGB(255, 255, 255, 255),
-                          margin:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          child: ListTile(
-                            leading: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (settings.useCalendarForIncomeFixed)
-                                  // カレンダーモード → YYYY/MM/DD
-                                  Text(
-                                    '${income.date.year}/${income.date.month}/${income.date.day}',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey),
-                                  )
-                                else
-                                  // 毎月◯日モード
-                                  Text(
-                                    '毎月${income.date.day}日',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey),
-                                  ),
-                                Text(
-                                  income.title, // 種類
-                                  style: TextStyle(fontSize: 16),
+                          ),
+                        );
+                      } else {
+                        // 既存のスマホ用レイアウト（ListTile を使用）
+                        return Dismissible(
+                          key: ValueKey(income),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          onDismissed: (direction) {
+                            final removedIncome = income;
+                            ref.read(incomeViewModelProvider.notifier).removeItem(income);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${removedIncome.title} を削除しました。'),
+                                duration: const Duration(seconds: 3),
+                                action: SnackBarAction(
+                                  label: '元に戻す',
+                                  onPressed: () {
+                                    ref.read(incomeViewModelProvider.notifier).addItem(removedIncome);
+                                  },
                                 ),
-                              ],
-                            ),
-                            title: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 40.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                      width: 80,
-                                      alignment: Alignment.centerRight,
-                                      child: Text(
-                                        income.amount.toStringAsFixed(0),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
+                          child: Card(
+                            color: const Color.fromARGB(255, 255, 255, 255),
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: ListTile(
+                              leading: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (settings.useCalendarForIncomeFixed)
+                                    Text(
+                                      '${income.date.year}/${income.date.month}/${income.date.day}',
+                                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                    )
+                                  else
+                                    Text(
+                                      '毎月${income.date.day}日',
+                                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                    ),
+                                  Text(
+                                    income.title,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                              title: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 40.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          income.amount.toStringAsFixed(0),
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Text("円")
-                                  ],
+                                      const SizedBox(width: 4),
+                                      const Text("円"),
+                                    ],
+                                  ),
                                 ),
                               ),
+                              trailing: isPaidUser
+                                  ? IconButton(
+                                icon: Icon(Icons.settings, color: Colors.cyan[800]),
+                                onPressed: () => _editIncome(context, ref, income),
+                              )
+                                  : null,
                             ),
-                            trailing: isPaidUser
-                                ? IconButton(
-                                    icon:
-                                        Icon(Icons.settings, color: Colors.cyan[800]),
-                                    onPressed: () =>
-                                        _editIncome(context, ref, income),
-                                  )
-                                : null,
                           ),
-                        ),
-                      );
+                        );
+                      }
                     },
                   );
                 },
@@ -181,7 +247,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
 
                   final int startDay = ref.read(startDayProvider);
                   final DateTime startDate =
-                      DateTime(now.year, now.month, startDay);
+                  DateTime(now.year, now.month, startDay);
 
                   // 開始日前のデータかを確認
                   if (updatedDate.isBefore(startDate)) {
@@ -193,13 +259,13 @@ class FullScreenIncomeSection extends ConsumerWidget {
 
                   if (title.isNotEmpty && amount != null) {
                     ref.read(incomeViewModelProvider.notifier).addItem(
-                          Income(
-                            id: Uuid().v4(),
-                            title: title,
-                            amount: amount,
-                            date: updatedDate,
-                          ),
-                        );
+                      Income(
+                        id: Uuid().v4(),
+                        title: title,
+                        amount: amount,
+                        date: updatedDate,
+                      ),
+                    );
                     titleController.clear();
                     amountController.clear();
                     ref.read(incomeDateProvider.notifier).state =
@@ -253,3 +319,4 @@ class FullScreenIncomeSection extends ConsumerWidget {
     );
   }
 }
+

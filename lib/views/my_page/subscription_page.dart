@@ -169,6 +169,22 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
     print('[DEBUG] _handleCancellation => set status to free');
   }
 
+  bool _isRestoring = false;
+
+  void _restorePurchases() {
+    if (_isRestoring) return; // すでに復元中なら何もしない
+    _isRestoring = true;
+
+    _inAppPurchase.restorePurchases();
+
+    // ここでは復元開始直後に一度だけフィードバックを表示するか、
+    // または _handlePurchaseSuccess 内で1回だけ表示するようにする
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("購入の復元を開始しました")),
+    );
+  }
+
+
   Future<void> _handlePurchaseSuccess(PurchaseDetails purchaseDetails) async {
     final pid = purchaseDetails.productID;
     String planId = "free";
@@ -177,14 +193,33 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
         planId = key;
       }
     });
-    // もし現在の状態が cancellation_pending なら、購入成功による更新は無視する
-    if (ref.read(subscriptionStatusProvider) == SubscriptionStatusViewModel.cancellationPending) {
-      print('[DEBUG] _handlePurchaseSuccess: 現在 cancellation_pending 状態のため、更新を無視します。');
+
+    // もし復元処理中なら強制的に更新する
+    if (_isRestoring) {
+      try {
+        await ref.read(firebaseRepositoryProvider).markUserAsSubscribed(planId);
+        print('[DEBUG] (Restore) Firebase上のサブスクリプション状態を更新しました: $planId');
+      } catch (e) {
+        print('[ERROR] markUserAsSubscribed (restore) 失敗: $e');
+      }
+      await ref.read(subscriptionStatusProvider.notifier).saveStatus(planId);
+      print("課金プラン (restore): $planId に更新");
+      _isRestoring = false;
       return;
     }
+
+    // 通常の購入の場合は、退会処理中なら更新を無視する
+    if (purchaseDetails.status == PurchaseStatus.purchased &&
+        ref.read(subscriptionStatusProvider) == SubscriptionStatusViewModel.cancellationPending) {
+      print('[DEBUG] _handlePurchaseSuccess: cancellation_pending 状態のため、購入更新は無視します。');
+      return;
+    }
+
+    // 通常の状態更新
     await ref.read(subscriptionStatusProvider.notifier).saveStatus(planId);
     print("課金プラン:$planId に更新");
   }
+
 
   Future<void> _startPurchase(String planId) async {
     final productId = _storeProductIds[planId];
@@ -270,12 +305,12 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       {
         "id": "basic",
         "title": "ベーシックプラン",
-        "price": "100円",
         "description": """
 ・各金額カードをタップしてメモや編集が可能
 ・浪費スイッチでマイページに浪費額を表示
+・固定費に「貯金」と入力すれば
+　貯金額をマイページで表示
 ・貯金額の目標を設定可能
-・設定固定費に「貯金」と入力すれば　貯金額をマイページで表示
 ・月次データをクラウドに24ヶ月保存
 """,
         "isDev": false,
@@ -283,7 +318,6 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       {
         "id": "premium",
         "title": "プレミアムプラン",
-        "price": "¥300",
         "description": """
 ・収入/固定費/使った金額の種類をアイコン切替可
 ・支出額全体を種類別にグラフ化して分析
@@ -309,6 +343,15 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
             },
             icon: const Icon(Icons.refresh),
           ),
+          TextButton(
+            onPressed: () {
+              _restorePurchases();
+            },
+            child: const Text(
+              "購入の復元",
+              style: TextStyle(color: Colors.black), // ボタンのテキスト色を調整（背景がAppBarなので白が分かりやすい）
+            ),
+          ),
         ],
       ),
       // 「購入の復元」は表示しない
@@ -329,7 +372,6 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                 ref,
                 planId: plan["id"] as String,
                 planTitle: plan["title"] as String,
-                price: plan["price"] as String,
                 description: plan["description"] as String,
                 isDev: plan["isDev"] as bool,
                 currentPlanId: currentPlanId,
@@ -346,7 +388,6 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       WidgetRef ref, {
         required String planId,
         required String planTitle,
-        required String price,
         required String description,
         required bool isDev,
         required String? currentPlanId,
@@ -461,7 +502,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
             const SizedBox(height: 8),
             // 価格表示
             Text(
-              "$price / 月",
+              "1ヶ月間使えます。",
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
             ),
             const SizedBox(height: 8),
@@ -473,7 +514,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isCurrent ? Colors.grey : null,
                 ),
-                child: Text(buttonLabel),
+                child: Text(buttonLabel, style: TextStyle(color: Colors.cyan[800]),),
               ),
             ),
           ],
@@ -482,3 +523,4 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
     );
   }
 }
+

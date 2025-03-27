@@ -22,9 +22,11 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
 
     final isPaidUser = ref.watch(
       subscriptionStatusProvider.select((s) =>
-          s == SubscriptionStatusViewModel.basic ||
+      s == SubscriptionStatusViewModel.basic ||
           s == SubscriptionStatusViewModel.premium),
     );
+    // 既存のコードの先頭などで、タブレット判定を追加
+    final bool isTablet = MediaQuery.of(context).size.shortestSide >= 600;
 
     return Scaffold(
       appBar: AppBar(
@@ -58,98 +60,142 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                     itemCount: sortedFixedCosts.length,
                     itemBuilder: (context, index) {
                       final fixedCost = sortedFixedCosts[index];
-                      return Dismissible(
-                        key: ValueKey(fixedCost),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: Icon(Icons.delete, color: Colors.white),
-                        ),
-                        onDismissed: (direction) {
-                          final removedFixedCost = fixedCost;
-                          ref
-                              .read(fixedCostViewModelProvider.notifier)
-                              .removeItem(fixedCost);
-                          // ★ “元に戻す”用にSnackBarを表示
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${removedFixedCost.title} を削除しました。'),
-                              duration: const Duration(seconds: 3), // 3秒間だけ表示
-                              action: SnackBarAction(
-                                label: '元に戻す',
-                                onPressed: () {
-                                  // ★ 削除を取り消して再度リストに追加
-                                  ref.read(fixedCostViewModelProvider.notifier).addItem(removedFixedCost);
-                                },
-                              ),
-                            ),
-                          );
 
-                        },
-                        child: Card(
-                          color: Color.fromARGB(255, 255, 255, 255),
-                          margin:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          child: ListTile(
-                            leading: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
+                      if (isTablet) {
+                        // タブレット用レイアウト：2カラム（左：日付＆タイトル、右：金額＋設定アイコン）
+                        return Card(
+                          color: const Color.fromARGB(255, 255, 255, 255),
+                          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                if (settings.useCalendarForIncomeFixed)
-                                // カレンダーモード → YYYY/MM/DD
-                                  Text(
-                                    '${fixedCost.date.year}/${fixedCost.date.month}/${fixedCost.date.day}',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey),
-                                  )
-                                else
-                                // 毎月◯日モード
-                                  Text(
-                                    '毎月${fixedCost.date.day}日',
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey),
-                                  ),
-                                Text(
-                                  fixedCost.title,
-                                  style: TextStyle(fontSize: 16),
-                                ), // 種類
-                              ],
-                            ),
-                            title: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 40.0),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
+                                // 左側：日付とタイトル
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      width: 80,
-                                      alignment: Alignment.centerRight,
-                                      child: Text(
-                                        fixedCost.amount.toStringAsFixed(0),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                    // 日付表示（カレンダー利用設定に応じて）
+                                    settings.useCalendarForIncomeFixed
+                                        ? Text(
+                                      '${fixedCost.date.year}/${fixedCost.date.month}/${fixedCost.date.day}',
+                                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                    )
+                                        : Text(
+                                      '毎月${fixedCost.date.day}日',
+                                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      fixedCost.title,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                                // 右側：金額と設定アイコン（課金ユーザーの場合）
+                                Row(
+                                  children: [
+                                    Text(
+                                      fixedCost.amount.toStringAsFixed(0),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                     ),
                                     const SizedBox(width: 4),
                                     const Text("円"),
+                                    if (isPaidUser)
+                                      IconButton(
+                                        icon: Icon(Icons.settings, color: Colors.cyan[800]),
+                                        onPressed: () {
+                                          _editFixed(context, ref, fixedCost);
+                                        },
+                                      ),
                                   ],
                                 ),
-                              ),
+                              ],
                             ),
-                            trailing: isPaidUser
-                                ? IconButton(
-                                    icon: Icon(Icons.settings, color: Colors.cyan[800],),
-                                    onPressed: () {
-                                      _editFixed(context, ref, fixedCost);
-                                    },
-                                  )
-                                : null,
                           ),
-                        ),
-                      );
+                        );
+                      } else {
+                        // 既存のスマホ用レイアウト（ListTile を使用）
+                        return Dismissible(
+                          key: ValueKey(fixedCost),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          onDismissed: (direction) {
+                            final removedFixedCost = fixedCost;
+                            ref.read(fixedCostViewModelProvider.notifier).removeItem(fixedCost);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${removedFixedCost.title} を削除しました。'),
+                                duration: const Duration(seconds: 3),
+                                action: SnackBarAction(
+                                  label: '元に戻す',
+                                  onPressed: () {
+                                    ref.read(fixedCostViewModelProvider.notifier).addItem(removedFixedCost);
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                          child: Card(
+                            color: const Color.fromARGB(255, 255, 255, 255),
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: ListTile(
+                              leading: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  settings.useCalendarForIncomeFixed
+                                      ? Text(
+                                    '${fixedCost.date.year}/${fixedCost.date.month}/${fixedCost.date.day}',
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                  )
+                                      : Text(
+                                    '毎月${fixedCost.date.day}日',
+                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                  ),
+                                  Text(
+                                    fixedCost.title,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                              title: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 40.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Container(
+                                        width: 80,
+                                        alignment: Alignment.centerRight,
+                                        child: Text(
+                                          fixedCost.amount.toStringAsFixed(0),
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Text("円"),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              trailing: isPaidUser
+                                  ? IconButton(
+                                icon: Icon(Icons.settings, color: Colors.cyan[800]),
+                                onPressed: () {
+                                  _editFixed(context, ref, fixedCost);
+                                },
+                              )
+                                  : null,
+                            ),
+                          ),
+                        );
+                      }
                     },
                   );
                 },
@@ -167,7 +213,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                 },
                 onAdd: () {
                   final selectedDate =
-                      ref.read(fixedCostsDateProvider); // ここでselectedDateを取得
+                  ref.read(fixedCostsDateProvider); // ここでselectedDateを取得
                   final now = DateTime.now();
                   final updatedDate = DateTime(
                     selectedDate.year,
@@ -184,7 +230,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
 
                   final int startDay = ref.read(startDayProvider);
                   final DateTime startDate =
-                      DateTime(now.year, now.month, startDay);
+                  DateTime(now.year, now.month, startDay);
 
                   // 開始日前のデータかを確認
                   if (updatedDate.isBefore(startDate)) {
@@ -197,13 +243,13 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                   if (title.isNotEmpty && amount != null) {
                     // `addItem`メソッドでデータを追加
                     ref.read(fixedCostViewModelProvider.notifier).addItem(
-                          FixedCost(
-                            id: Uuid().v4(),
-                            title: title,
-                            amount: amount,
-                            date: updatedDate,
-                          ),
-                        );
+                      FixedCost(
+                        id: Uuid().v4(),
+                        title: title,
+                        amount: amount,
+                        date: updatedDate,
+                      ),
+                    );
 
                     titleController.clear();
                     amountController.clear();
@@ -219,43 +265,44 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
       ),
     );
   }
-    void _editFixed(BuildContext context, WidgetRef ref, FixedCost fixedCost) {
-        showCardEditDialog(
-              context: context,
-              initialData: CardEditData(
-                title: fixedCost.title,
-                amount: fixedCost.amount,
-                date: fixedCost.date,
-                showMemo: true,        // 固定費もメモ機能ON
-                showRemember: true,    // 記憶アイコンON
-                showWaste: false,      // 固定費に浪費はなし
-                memo: fixedCost.memo,
-                isRemember: fixedCost.isRemember,
-                isWaste: false,
-              ),
-         onSave: ({
-           required String title,
-           required double amount,
-           required DateTime date,
-           required String? memo,
-           required bool isRemember,
-           required bool isWaste,
-         }) {
-           final updateFixed = fixedCost.copyWith(
-               title: title,
-               amount: amount,
-               date: date,
-               memo: memo,
-               isRemember: isRemember,
-             );
-           ref.read(fixedCostViewModelProvider.notifier).updateFixedCost(updateFixed);
+  void _editFixed(BuildContext context, WidgetRef ref, FixedCost fixedCost) {
+    showCardEditDialog(
+      context: context,
+      initialData: CardEditData(
+        title: fixedCost.title,
+        amount: fixedCost.amount,
+        date: fixedCost.date,
+        showMemo: true,        // 固定費もメモ機能ON
+        showRemember: true,    // 記憶アイコンON
+        showWaste: false,      // 固定費に浪費はなし
+        memo: fixedCost.memo,
+        isRemember: fixedCost.isRemember,
+        isWaste: false,
+      ),
+      onSave: ({
+        required String title,
+        required double amount,
+        required DateTime date,
+        required String? memo,
+        required bool isRemember,
+        required bool isWaste,
+      }) {
+        final updateFixed = fixedCost.copyWith(
+          title: title,
+          amount: amount,
+          date: date,
+          memo: memo,
+          isRemember: isRemember,
+        );
+        ref.read(fixedCostViewModelProvider.notifier).updateFixedCost(updateFixed);
 
-           // ViewModel の updateFixedCost
+        // ViewModel の updateFixedCost
 
 
-           // 変更を永続化
-           ref.read(fixedCostViewModelProvider.notifier).saveData();
-         },
-       );
-     }
+        // 変更を永続化
+        ref.read(fixedCostViewModelProvider.notifier).saveData();
+      },
+    );
+  }
 }
+

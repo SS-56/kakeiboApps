@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:yosan_de_kakeibo/main.dart';
 import 'package:yosan_de_kakeibo/opening_screen.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
@@ -80,6 +81,20 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
                   onTap: () {
                     // 通常時 => firstTime=false
                     _showTermsOfService(context, firstTime: false);
+                  },
+                ),
+              ),
+              // ここに Apple 標準利用規約 (EULA) のリンクカードを追加
+              Card(
+                child: ListTile(
+                  title: const Text("Apple 標準利用規約 (EULA)"),
+                  onTap: () async {
+                    final url = Uri.parse("https://www.apple.com/legal/internet-services/terms/site.html");
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    } else {
+                      print("Apple 標準利用規約のリンクを開けませんでした");
+                    }
                   },
                 ),
               ),
@@ -333,6 +348,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
 1.本規約に関するお問い合わせは、以下の連絡先までお願いいたします。
 
 社名：GappsOn
+担当者：Shindo（シンドウ）
 メールアドレス：gappson55@gmail.com
 
 """,
@@ -442,6 +458,7 @@ GappsOn（以下、「当社」）は、ユーザーのプライバシーを尊�
 プライバシーポリシーに関するお問い合わせは、以下の連絡先までお願いいたします。
 
 社名：GappsOn
+担当：Shindo（シンドウ）
 メールアドレス：gappson55@gmail.com
 
 """,
@@ -458,3 +475,4 @@ GappsOn（以下、「当社」）は、ユーザーのプライバシーを尊�
     );
   }
 }
+
