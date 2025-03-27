@@ -22,12 +22,14 @@ class SubscriptionPage extends ConsumerStatefulWidget {
 
 class SubscriptionPageState extends ConsumerState<SubscriptionPage>
     with WidgetsBindingObserver {
+  // クラス変数
   bool _isUnsubscribing = false;
   late final InAppPurchase _inAppPurchase;
   List<ProductDetails> _products = [];
   bool _isLoading = true;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
+  /// 各プランに対応するストアの Product ID
   final Map<String, String> _storeProductIds = {
     "basic": "com.gappson56.yosandekakeibo.basicPlan",
     "premium": "com.gappson56.yosandekakeibo.premiumPlan",
@@ -37,9 +39,11 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
   void initState() {
     super.initState();
     _inAppPurchase = InAppPurchase.instance;
-    _subscription = _inAppPurchase.purchaseStream.listen(_listenToPurchaseUpdated,
-        onDone: () => print('[DEBUG] Purchase stream closed'),
-        onError: (error) => print('[ERROR] Purchase stream error: $error'));
+    _subscription = _inAppPurchase.purchaseStream.listen(
+      _listenToPurchaseUpdated,
+      onDone: () => print('[DEBUG] Purchase stream closed'),
+      onError: (error) => print('[ERROR] Purchase stream error: $error'),
+    );
     _loadData();
   }
 
@@ -47,10 +51,8 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
     setState(() {
       _isLoading = true;
     });
-
     await ref.read(subscriptionStatusProvider.notifier).syncWithFirebase();
-    await _loadProducts(); // InAppPurchase の初期化後に呼び出す
-
+    await _loadProducts();
     setState(() {
       _isLoading = false;
     });
@@ -92,8 +94,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
         _products = [];
         _isLoading = false;
       });
-      UIUtils.showErrorDialog(
-          context, "課金アイテムの取得に失敗しました: ${response.error}");
+      UIUtils.showErrorDialog(context, "課金アイテムの取得に失敗しました: ${response.error}");
       return;
     }
     if (response.productDetails.isEmpty) {
@@ -148,8 +149,6 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
         _handleCancellation();
         return;
       }
-    }
-    if (Platform.isIOS && purchaseDetails is AppStorePurchaseDetails) {
       if (purchaseDetails.error!.code == "storekit_duplicate_product_object") {
         print('[ERROR] Duplicate product object error. Trying to complete purchase...');
         if (purchaseDetails.pendingCompletePurchase) {
@@ -172,18 +171,13 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
   bool _isRestoring = false;
 
   void _restorePurchases() {
-    if (_isRestoring) return; // すでに復元中なら何もしない
+    if (_isRestoring) return;
     _isRestoring = true;
-
     _inAppPurchase.restorePurchases();
-
-    // ここでは復元開始直後に一度だけフィードバックを表示するか、
-    // または _handlePurchaseSuccess 内で1回だけ表示するようにする
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("購入の復元を開始しました")),
     );
   }
-
 
   Future<void> _handlePurchaseSuccess(PurchaseDetails purchaseDetails) async {
     final pid = purchaseDetails.productID;
@@ -193,8 +187,6 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
         planId = key;
       }
     });
-
-    // もし復元処理中なら強制的に更新する
     if (_isRestoring) {
       try {
         await ref.read(firebaseRepositoryProvider).markUserAsSubscribed(planId);
@@ -207,19 +199,15 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       _isRestoring = false;
       return;
     }
-
-    // 通常の購入の場合は、退会処理中なら更新を無視する
     if (purchaseDetails.status == PurchaseStatus.purchased &&
-        ref.read(subscriptionStatusProvider) == SubscriptionStatusViewModel.cancellationPending) {
+        ref.read(subscriptionStatusProvider) ==
+            SubscriptionStatusViewModel.cancellationPending) {
       print('[DEBUG] _handlePurchaseSuccess: cancellation_pending 状態のため、購入更新は無視します。');
       return;
     }
-
-    // 通常の状態更新
     await ref.read(subscriptionStatusProvider.notifier).saveStatus(planId);
     print("課金プラン:$planId に更新");
   }
-
 
   Future<void> _startPurchase(String planId) async {
     final productId = _storeProductIds[planId];
@@ -231,8 +219,8 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       UIUtils.showErrorDialog(context, "課金アイテムが読み込まれていません。");
       return;
     }
-    // 退会処理中の場合は処理せず、ダイアログを表示
-    if (ref.read(subscriptionStatusProvider) == SubscriptionStatusViewModel.cancellationPending) {
+    if (ref.read(subscriptionStatusProvider) ==
+        SubscriptionStatusViewModel.cancellationPending) {
       UIUtils.showErrorDialog(context, "退会処理中につき、月次処理最終日までは有料機能が使えます。");
       return;
     }
@@ -297,15 +285,15 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
   @override
   Widget build(BuildContext context) {
     final currentPlan = ref.watch(subscriptionStatusProvider);
-    final isCancelling = ref.watch(subscriptionStatusProvider.notifier).isCancellationPending;
-    final currentPlanId = ref.watch(subscriptionStatusProvider.notifier).currentPlanId;
+    final isCancelling =
+        ref.watch(subscriptionStatusProvider.notifier).isCancellationPending;
+    final currentPlanId =
+        ref.watch(subscriptionStatusProvider.notifier).currentPlanId;
 
-    // プランリスト（価格をハードコード）
+    // プランリストからは "title" と "price" を削除（動的取得するため）
     final List<Map<String, dynamic>> plans = [
       {
         "id": "basic",
-        "title": "ベーシックプラン",
-        "price":100,
         "description": """
 ・各金額カードをタップしてメモや編集が可能
 ・浪費スイッチでマイページに浪費額を表示
@@ -318,8 +306,6 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       },
       {
         "id": "premium",
-        "title": "プレミアムプラン",
-        "price":300,
         "description": """
 ・収入/固定費/使った金額の種類をアイコン切替可
 ・支出額全体を種類別にグラフ化して分析
@@ -365,8 +351,6 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
           ),
         ),
       ),
-
-      // 「購入の復元」は表示しない
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -383,15 +367,15 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                 context,
                 ref,
                 planId: plan["id"] as String,
-                planTitle: plan["title"] as String,
-                price: plan["price"] as int,
+                // planTitle は動的に取得するため、fallback として空文字を渡す
+                planTitle: "",
                 description: plan["description"] as String,
                 isDev: plan["isDev"] as bool,
                 currentPlanId: currentPlanId,
                 isCancelling: isCancelling,
               ),
-            const SizedBox(height: 24), // カード間のスペース
-            // Apple 標準利用規約 (EULA) カード
+            const SizedBox(height: 24),
+            // Apple 標準利用規約 (EULA) カード（変更なし）
             Card(
               child: ListTile(
                 title: const Text("Apple 標準利用規約 (EULA)"),
@@ -401,8 +385,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                     await launchUrl(url, mode: LaunchMode.externalApplication);
                   } else {
                     print("Apple 標準利用規約のリンクを開けませんでした");
-                    // エラー表示 (例: SnackBar) を追加しても良い
-                    if (context.mounted) { //非同期処理後のcontextチェック
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('リンクを開けませんでした')),
                       );
@@ -411,7 +394,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                 },
               ),
             ),
-            // プライバシーポリシーカード
+            // プライバシーポリシーカード（変更なし）
             Card(
               child: ListTile(
                 title: const Text("プライバシーポリシー"),
@@ -441,31 +424,23 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       WidgetRef ref, {
         required String planId,
         required String planTitle,
-        required int price,
         required String description,
         required bool isDev,
         required String? currentPlanId,
         required bool isCancelling,
       }) {
-    // 現在加入中かどうか
     final bool isCurrent = (currentPlanId == planId);
-    // 現在の購読状態
     final subscriptionState = ref.watch(subscriptionStatusProvider);
-
-    print("[DEBUG] _buildPlanCard - planId: $planId, currentPlanId: $currentPlanId, isCurrent: $isCurrent, isDev: $isDev, subscriptionState: $subscriptionState");
 
     String buttonLabel;
     VoidCallback? onPressed;
 
     if (isDev) {
-      // プレミアムプランは常に選択できません
       buttonLabel = "選択できません";
       onPressed = null;
     } else {
-      // ベーシックプランの場合
       if (isCurrent) {
         if (subscriptionState == SubscriptionStatusViewModel.cancellationPending) {
-          // 加入中かつ退会処理中の場合：カード内タイトル直下に赤字で状態を表示し、ボタンを押すとダイアログで案内
           buttonLabel = "退会処理中";
           onPressed = () {
             showDialog(
@@ -489,7 +464,6 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
           onPressed = () => _unsubscribePlan(ref, planId);
         }
       } else {
-        // 退会処理中はボタンラベルを「退会処理中」に設定
         if (isCancelling) {
           buttonLabel = "退会処理中";
           onPressed = () {
@@ -514,7 +488,9 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
           onPressed = () {
             if (_products.isEmpty) {
               UIUtils.showErrorDialog(
-                  context, "課金アイテムを読み込み中です。しばらくお待ちください。");
+                context,
+                "課金アイテムを読み込み中です。しばらくお待ちください。",
+              );
             } else {
               _startPurchase(planId);
             }
@@ -522,6 +498,21 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
         }
       }
     }
+
+    // ストアから取得した動的な商品情報（商品名、価格）を表示
+    final productId = _storeProductIds[planId];
+    ProductDetails? productDetails;
+    try {
+      productDetails = _products.firstWhere((p) => p.id == productId);
+    } catch (_) {
+      productDetails = null;
+    }
+    final dynamicTitle = (productDetails != null && productDetails.title.isNotEmpty)
+        ? productDetails.title
+        : planTitle;
+    final dynamicPriceText = (productDetails != null)
+        ? productDetails.price
+        : "価格情報取得中";
 
     return Card(
       color: isCurrent ? Colors.lime[50] : null,
@@ -531,13 +522,12 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // プランタイトル
+            // 動的に取得した商品名を表示
             Text(
-              planTitle,
+              dynamicTitle,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            // ベーシックプラン：加入中の場合、カード内に状態表示
             if (!isDev && isCurrent)
               Text(
                 subscriptionState == SubscriptionStatusViewModel.cancellationPending
@@ -546,29 +536,29 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                 style: const TextStyle(color: Colors.red),
               ),
             if (!isDev && isCurrent) const SizedBox(height: 8),
-            // プラン説明
             if (isDev)
               const Text(
                 "(現在開発中 近日リリース予定です)",
                 style: TextStyle(color: Colors.red),
               ),
-            Text(description, style: const TextStyle(fontSize: 14)),
-            const SizedBox(height: 8),
-
-            if (!isDev)
-            Text("¥${price.toString()} / 月",
-              style: const TextStyle(fontSize:16,fontWeight:FontWeight.bold,color:Colors.green),
-            ),
-            const SizedBox(height:8),
-
-            if (!isDev)
-            // 価格表示
             Text(
-              "1ヶ月ごとに自動更新されます",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+              description,
+              style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 8),
-            // ボタン
+            if (!isDev) ...[
+              Text(
+                dynamicPriceText,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+              const SizedBox(height: 8),
+              // 固定文言「1ヶ月間使えます」を追加
+              const Text(
+                "1ヶ月ごとに自動更新します",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ],
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
               child: ElevatedButton(
@@ -576,7 +566,10 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isCurrent ? Colors.grey : null,
                 ),
-                child: Text(buttonLabel, style: TextStyle(color: Colors.cyan[800]),),
+                child: Text(
+                  buttonLabel,
+                  style: TextStyle(color: Colors.cyan[800]),
+                ),
               ),
             ),
           ],
@@ -585,4 +578,3 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
     );
   }
 }
-
