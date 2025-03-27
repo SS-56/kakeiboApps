@@ -99,11 +99,22 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
                 ),
               ),
               // プライバシーポリシーCard
+              // プライバシーポリシーカード
               Card(
                 child: ListTile(
                   title: const Text("プライバシーポリシー"),
-                  onTap: () {
-                    _showPrivacyPolicy(context);
+                  onTap: () async {
+                    final url = Uri.parse("https://sites.google.com/view/gappson");
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    } else {
+                      print("リンクを開けませんでした");
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('リンクを開けませんでした')),
+                        );
+                      }
+                    }
                   },
                 ),
               ),

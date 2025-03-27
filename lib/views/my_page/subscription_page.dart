@@ -305,6 +305,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       {
         "id": "basic",
         "title": "ベーシックプラン",
+        "price":100,
         "description": """
 ・各金額カードをタップしてメモや編集が可能
 ・浪費スイッチでマイページに浪費額を表示
@@ -318,6 +319,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       {
         "id": "premium",
         "title": "プレミアムプラン",
+        "price":300,
         "description": """
 ・収入/固定費/使った金額の種類をアイコン切替可
 ・支出額全体を種類別にグラフ化して分析
@@ -330,30 +332,40 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("課金プラン"),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await _loadProducts();
-              if (_products.isNotEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('商品情報を更新しました')),
-                );
-              }
-            },
-            icon: const Icon(Icons.refresh),
-          ),
-          TextButton(
-            onPressed: () {
-              _restorePurchases();
-            },
-            child: const Text(
-              "購入の復元",
-              style: TextStyle(color: Colors.black), // ボタンのテキスト色を調整（背景がAppBarなので白が分かりやすい）
+        title: const Text("サブスクリプション\n(月額課金プラン)"),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  onPressed: () async {
+                    await _loadProducts();
+                    if (_products.isNotEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('商品情報を更新しました')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.refresh),
+                ),
+                TextButton(
+                  onPressed: () {
+                    _restorePurchases();
+                  },
+                  child: const Text(
+                    "購入の復元",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
+
       // 「購入の復元」は表示しない
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -372,11 +384,52 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                 ref,
                 planId: plan["id"] as String,
                 planTitle: plan["title"] as String,
+                price: plan["price"] as int,
                 description: plan["description"] as String,
                 isDev: plan["isDev"] as bool,
                 currentPlanId: currentPlanId,
                 isCancelling: isCancelling,
               ),
+            const SizedBox(height: 24), // カード間のスペース
+            // Apple 標準利用規約 (EULA) カード
+            Card(
+              child: ListTile(
+                title: const Text("Apple 標準利用規約 (EULA)"),
+                onTap: () async {
+                  final url = Uri.parse("https://www.apple.com/legal/internet-services/terms/site.html");
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    print("Apple 標準利用規約のリンクを開けませんでした");
+                    // エラー表示 (例: SnackBar) を追加しても良い
+                    if (context.mounted) { //非同期処理後のcontextチェック
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('リンクを開けませんでした')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ),
+            // プライバシーポリシーカード
+            Card(
+              child: ListTile(
+                title: const Text("プライバシーポリシー"),
+                onTap: () async {
+                  final url = Uri.parse("https://sites.google.com/view/gappson");
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  } else {
+                    print("リンクを開けませんでした");
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('リンクを開けませんでした')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -388,6 +441,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       WidgetRef ref, {
         required String planId,
         required String planTitle,
+        required int price,
         required String description,
         required bool isDev,
         required String? currentPlanId,
@@ -500,9 +554,17 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
               ),
             Text(description, style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 8),
+
+            if (!isDev)
+            Text("¥${price.toString()} / 月",
+              style: const TextStyle(fontSize:16,fontWeight:FontWeight.bold,color:Colors.green),
+            ),
+            const SizedBox(height:8),
+
+            if (!isDev)
             // 価格表示
             Text(
-              "1ヶ月間使えます。",
+              "1ヶ月ごとに自動更新されます",
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
             ),
             const SizedBox(height: 8),
