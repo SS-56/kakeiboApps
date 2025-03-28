@@ -84,21 +84,6 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
                   },
                 ),
               ),
-              // ここに Apple 標準利用規約 (EULA) のリンクカードを追加
-              Card(
-                child: ListTile(
-                  title: const Text("Apple 標準利用規約 (EULA)"),
-                  onTap: () async {
-                    final url = Uri.parse("https://www.apple.com/legal/internet-services/terms/site.html");
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                    } else {
-                      print("Apple 標準利用規約のリンクを開けませんでした");
-                    }
-                  },
-                ),
-              ),
-              // プライバシーポリシーCard
               // プライバシーポリシーカード
               Card(
                 child: ListTile(
@@ -141,6 +126,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        scrollable: true, // ← これを付ける
         title: const Text("全データ削除"),
         content: const Text("退会してから全データ削除できます。\n\nまずは課金プランを退会してください。"),
         actions: [
@@ -308,6 +294,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
         return WillPopScope(
           onWillPop: () async => false,
           child: AlertDialog(
+            scrollable: true, // ← これを付ける
             title: const Text("利用規約"),
             content: SingleChildScrollView(
               child: Container(
@@ -359,7 +346,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
 1.本規約に関するお問い合わせは、以下の連絡先までお願いいたします。
 
 社名：GappsOn
-担当者：Shindo（シンドウ）
+担当者：Shuichi Shindo（シンドウ シュウイチ）
 メールアドレス：gappson55@gmail.com
 
 """,
@@ -411,6 +398,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        scrollable: true, // ← これを付ける
         title: const Text("プライバシーポリシー"),
         content: SingleChildScrollView(
           child: Container(

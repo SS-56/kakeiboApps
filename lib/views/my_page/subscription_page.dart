@@ -404,7 +404,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                             ),
                             recognizer: TapGestureRecognizer()
                               ..onTap = () async {
-                                final url = Uri.parse("https://www.apple.com/legal/internet-services/terms/site.html");
+                                final url = Uri.parse("https://sites.google.com/view/gappson");
                                 if (await canLaunchUrl(url)) {
                                   await launchUrl(url, mode: LaunchMode.externalApplication);
                                 } else {
@@ -523,7 +523,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
               builder: (context) {
                 return AlertDialog(
                   title: const Text("お知らせ"),
-                  content: const Text("退会処理中につき、月次処理最終日までは有料機能が使えます。"),
+                  content: const Text("退会処理中につき、期限までは有料機能が使えます。"),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
@@ -547,7 +547,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
               builder: (context) {
                 return AlertDialog(
                   title: const Text("お知らせ"),
-                  content: const Text("退会処理中【次回更新まで有料機能を使えます】"),
+                  content: const Text("退会処理中【期限まで有料機能を使えます】"),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
@@ -606,7 +606,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
             if (!isDev && isCurrent)
               Text(
                 subscriptionState == SubscriptionStatusViewModel.cancellationPending
-                    ? "退会処理中【次回更新まで有効】"
+                    ? "退会処理中【期限まで有効】"
                     : "現在加入中のプランです",
                 style: const TextStyle(color: Colors.red),
               ),
