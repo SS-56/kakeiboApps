@@ -290,11 +290,11 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
   void _showTermsOfService(BuildContext context, {bool firstTime = false}) {
     showDialog(
       context: context,
-      builder: (_) {
+      builder: (dialogContext) { // builder の context を使用
         return WillPopScope(
           onWillPop: () async => false,
           child: AlertDialog(
-            scrollable: true, // ← これを付ける
+            scrollable: true,
             title: const Text("利用規約"),
             content: SingleChildScrollView(
               child: Container(
@@ -357,10 +357,10 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
               // 「閉じる」
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // ダイアログ閉じる
+                  Navigator.pop(dialogContext); // builder の context を使用
                   if (firstTime) {
                     Navigator.pushReplacement(
-                      context,
+                      dialogContext,
                       MaterialPageRoute(builder: (_) => const OpeningScreen()),
                     );
                   }
@@ -373,12 +373,10 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
                   onPressed: () async {
                     final prefs = await SharedPreferences.getInstance();
                     await prefs.setBool('termsAccepted', true);
-
-                    Navigator.pop(context);
-
+                    Navigator.pop(dialogContext);
                     if (mounted) {
                       Navigator.pushReplacement(
-                        context,
+                        dialogContext,
                         MaterialPageRoute(
                           builder: (_) => const MyApp(isAccepted: true),
                         ),

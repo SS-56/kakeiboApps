@@ -319,9 +319,9 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("サブスクリプション\n(月額課金プラン)"),
+        title: const Text("サブスクリプション\n(月額課金プラン)", style: TextStyle(fontSize: 18),),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50.0),
+          preferredSize: const Size.fromHeight(48.0),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Row(
@@ -362,7 +362,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
               ref.watch(subscriptionStatusProvider.notifier).getDisplayMessage(),
               style: const TextStyle(fontSize: 18),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
             for (final plan in plans)
               _buildPlanCard(
                 context,
@@ -375,7 +375,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                 currentPlanId: currentPlanId,
                 isCancelling: isCancelling,
               ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
             // Apple 標準利用規約 (EULA) カード（変更なし）
 
             Card(
@@ -389,12 +389,12 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                       '購入の確認・注意事項',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 16.0),
+                    const SizedBox(height: 8.0),
 
                     // 利用規約・プライバシーポリシー（文章統一）
                     RichText(
                       text: TextSpan(
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold), // 他と同じサイズ
+                        style: Theme.of(context).textTheme.titleSmall, // 他と同じサイズ
                         children: [
                           const TextSpan(text: '課金プランへの加入で、'),
                           TextSpan(
@@ -439,7 +439,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
                       ),
                     ),
 
-                    const SizedBox(height: 16.0),
+                    const SizedBox(height: 8.0),
 
                     // 自動課金（以下変更なし）
                     Text(
@@ -612,9 +612,12 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
               ),
             if (!isDev && isCurrent) const SizedBox(height: 8),
             if (isDev)
-              const Text(
-                "(現在開発中 近日リリース予定です)",
-                style: TextStyle(color: Colors.red),
+              Padding(
+                padding: const EdgeInsets.only(left: 12.0),
+                child: const Text(
+                  "(現在開発中 プレミアムプランで近日リリース予定)",
+                  style: TextStyle(color: Colors.red, fontSize: 12),
+                ),
               ),
             Text(
               description,
