@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -376,41 +377,115 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
               ),
             const SizedBox(height: 24),
             // Apple 標準利用規約 (EULA) カード（変更なし）
+
             Card(
-              child: ListTile(
-                title: const Text("Apple 標準利用規約 (EULA)"),
-                onTap: () async {
-                  final url = Uri.parse("https://www.apple.com/legal/internet-services/terms/site.html");
-                  if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  } else {
-                    print("Apple 標準利用規約のリンクを開けませんでした");
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('リンクを開けませんでした')),
-                      );
-                    }
-                  }
-                },
-              ),
-            ),
-            // プライバシーポリシーカード（変更なし）
-            Card(
-              child: ListTile(
-                title: const Text("プライバシーポリシー"),
-                onTap: () async {
-                  final url = Uri.parse("https://sites.google.com/view/gappson");
-                  if (await canLaunchUrl(url)) {
-                    await launchUrl(url, mode: LaunchMode.externalApplication);
-                  } else {
-                    print("リンクを開けませんでした");
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('リンクを開けませんでした')),
-                      );
-                    }
-                  }
-                },
+              margin: const EdgeInsets.only(bottom: 16.0), // 他のカードと統一
+              child: Padding(
+                padding: const EdgeInsets.all(16.0), // 内側の余白を統一
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '購入の確認・注意事項',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // 利用規約・プライバシーポリシー（文章統一）
+                    RichText(
+                      text: TextSpan(
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold), // 他と同じサイズ
+                        children: [
+                          const TextSpan(text: '課金プランへの加入で、'),
+                          TextSpan(
+                            text: '利用規約',
+                            style: const TextStyle(
+                              color: Colors.blue, // 青文字
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () async {
+                                final url = Uri.parse("https://www.apple.com/legal/internet-services/terms/site.html");
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                                } else {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('利用規約リンクを開けませんでした')),
+                                  );
+                                }
+                              },
+                          ),
+                          const TextSpan(text: 'と'),
+                          TextSpan(
+                            text: 'プライバシーポリシー',
+                            style: const TextStyle(
+                              color: Colors.blue, // 青文字
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () async {
+                                final url = Uri.parse("https://sites.google.com/view/gappson");
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                                } else {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('プライバシーポリシーリンクを開けませんでした')),
+                                  );
+                                }
+                              },
+                          ),
+                          const TextSpan(text: 'に同意いただいたとみなします。'),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16.0),
+
+                    // 自動課金（以下変更なし）
+                    Text(
+                      '自動課金',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4.0),
+                    const Text(
+                      '1ヶ月の契約期間は、期限が切れる24時間以内に自動更新の解除をされない場合、自動更新されます。',
+                    ),
+
+                    const SizedBox(height: 12.0),
+
+                    // 解約方法（以下変更なし）
+                    Text(
+                      '解約方法',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4.0),
+                    const Text(
+                      'マイページ右上の歯車アイコン＞マイ設定ページの課金プランを見る＞課金プランの「退会する」からキャンセルできます。',
+                    ),
+
+                    const SizedBox(height: 12.0),
+
+                    // 契約期間の確認（以下変更なし）
+                    Text(
+                      '契約期間の確認',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4.0),
+                    const Text('解約方法と同じ手順で確認いただけます。'),
+
+                    const SizedBox(height: 12.0),
+
+                    // 解約・キャンセル（以下変更なし）
+                    Text(
+                      '解約・キャンセル',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4.0),
+                    const Text(
+                      '解約は上記の方法以外では解約できません。また、キャンセルは翌月より反映されます。そのため、当月分のキャンセルは受け付けておりません。',
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
