@@ -212,7 +212,7 @@ class HomePage extends ConsumerWidget {
           children: [
             // 総収入
             CommonSectionWidget(
-              title: '総収入',
+              title: '収入',
               total: totalIncome,
               isExpanded: ref.watch(incomeExpandProvider),
               onExpand: () {

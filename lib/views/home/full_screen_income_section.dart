@@ -40,7 +40,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
             final totalIncome = ref
                 .watch(incomeViewModelProvider)
                 .fold(0.0, (sum, income) => sum + income.amount);
-            return Text('総収入合計: ${totalIncome.toStringAsFixed(0)} 円', style: TextStyle(color: Colors.cyan[800]),);
+            return Text('収入: ${totalIncome.toStringAsFixed(0)} 円', style: TextStyle(color: Colors.cyan[800]),);
           },
         ),
       ),
