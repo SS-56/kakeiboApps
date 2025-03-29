@@ -44,6 +44,7 @@ class SettingsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.yellow[50],
         title: Text("設定", style: TextStyle(color: Colors.cyan[800]),),
       ),
       body: ListTileTheme(

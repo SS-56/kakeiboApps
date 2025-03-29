@@ -297,22 +297,21 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
       {
         "id": "basic",
         "description": """
-・各金額カードをタップしてメモや編集が可能
-・浪費スイッチでマイページに浪費額を表示
-・固定費に「貯金」と入力すれば
-　貯金額をマイページで表示
-・貯金額の目標を設定可能
-・月次データをクラウドに24ヶ月保存
+各金額カードをタップしてメモやデータ編集が可能
+浪費スイッチONでマイページに支出と浪費の割合を円グラフで表示
+固定費に「貯金」と入力すれば貯金額をマイページで表示
+設定画面でベーシックプラン機能が使用可能
+月次データをクラウドに24ヶ月分保存
 """,
         "isDev": false,
       },
       {
         "id": "premium",
         "description": """
-・収入/固定費/使った金額の種類をアイコン切替可
-・支出額全体を種類別にグラフ化して分析
-・カメラでレシート撮影して金額を自動入力
-・コンシェルジュ機能で家計管理をサポート
+収入/固定費/使った金額の種類をアイコン切替可
+支出額全体を種類別にグラフ化して分析
+カメラでレシート撮影して金額を自動入力
+コンシェルジュ機能で家計管理をサポート
 """,
         "isDev": true,
       },
@@ -320,7 +319,11 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("サブスクリプション\n(月額課金プラン)", style: TextStyle(fontSize: 18),),
+        title: Text("サブスクリプション\n(月額課金プラン)",
+          style: TextStyle(
+            fontSize: 18,
+            color: Colors.cyan[800]
+          )),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48.0),
           child: Padding(

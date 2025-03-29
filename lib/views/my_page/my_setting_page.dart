@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:yosan_de_kakeibo/main.dart';
 import 'package:yosan_de_kakeibo/opening_screen.dart';
 import 'package:yosan_de_kakeibo/providers/page_providers.dart';
+import 'package:yosan_de_kakeibo/services/firebase_service.dart';
 import 'package:yosan_de_kakeibo/view_models/expand_notifier.dart';
 import 'package:yosan_de_kakeibo/view_models/expense_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/fixed_cost_view_model.dart';
@@ -73,7 +74,28 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
               // マイページから移動してきた「課金プラン加入Card」
               _buildSubscribedPlanCard(context, subscriptionStatus),
               const SizedBox(height: 16),
-
+              Card(
+                child: ListTile(
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("バージョン情報"),
+                      FutureBuilder<String>(
+                        future: FirebaseService().getCurrentAppVersion(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Text("読み込み中...");
+                          } else if (snapshot.hasError) {
+                            return const Text("情報取得に失敗しました");
+                          } else {
+                            return Text("${snapshot.data}");
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               // 利用規約Card
               Card(
                 child: ListTile(
@@ -104,7 +126,6 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
                 ),
               ),
               const SizedBox(height: 32),
-
               // 設定ページから移動してきた「全データ消去」(Card)
               Card(
                 child: ListTile(

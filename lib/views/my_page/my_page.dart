@@ -135,6 +135,7 @@ class _MyPageState extends ConsumerState<MyPage> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.pink[50],
         leading: isPaidUser
             ? IconButton(
           icon: const Icon(Icons.chevron_left),
