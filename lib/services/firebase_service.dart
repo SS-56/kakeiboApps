@@ -54,6 +54,7 @@ class FirebaseService {
         email: email,
         password: password,
       );
+      print("ログイン成功: ${userCredential.user?.uid}");
       return userCredential.user;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
@@ -72,6 +73,7 @@ class FirebaseService {
   /// ***Firestore: データ取得***
   Future<Map<String, dynamic>?> getDocument(String collection, String documentId) async {
     try {
+      print("Firestoreから取得開始: $collection/$documentId");
       final doc = await _firestore.collection(collection).doc(documentId).get();
       return doc.data();
     } on FirebaseException catch (e) {

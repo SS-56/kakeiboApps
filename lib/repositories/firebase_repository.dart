@@ -15,14 +15,14 @@ class FirebaseRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// 課金プラン取得（リトライ付き）
   Future<String?> getSubscriptionPlanWithRetry(String userId) async {
     int retryCount = 0;
     const maxRetries = 3;
     while (retryCount < maxRetries) {
       try {
-        final data = await _firebaseService.getDocument('users', userId); //修正
-        return data?['planId'] as String?; //修正
+        final data = await _firebaseService.getDocument('users', userId);
+        // 'planId' ではなく 'subscription_plan' を参照するように修正
+        return data?['subscription_plan'] as String?;
       } catch (e) {
         retryCount++;
         print("リトライ: $retryCount / $maxRetries");
@@ -34,6 +34,7 @@ class FirebaseRepository {
     }
     return null;
   }
+
 
   /// ====== 既存のメソッド ======
   Future<void> saveExpense(Expense expense) => _firebaseService.saveExpense(expense);
@@ -167,34 +168,54 @@ class FirebaseRepository {
     }
   }
 
-  // ====== 追加されたメソッド ======
+  // 1. 匿名認証を保証する関数
+  Future<void> signInAnonymouslyIfNeeded() async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      try {
+        final userCredential = await FirebaseAuth.instance.signInAnonymously();
+        print("匿名認証完了: ${userCredential.user?.uid}");
+      } catch (e) {
+        print("匿名認証エラー: $e");
+        rethrow;
+      }
+    }
+  }
+
+// 2. サブスクリプション情報を保存する（匿名ユーザーの uid を利用）
   Future<void> markUserAsSubscribed(String planId) async {
+    // 匿名認証がされているかチェックし、必要なら実施
+    await signInAnonymouslyIfNeeded();
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw Exception('User not logged in.');
     }
     try {
-      await _firestore.collection('users').doc(user.uid).update({
-        'subscription_plan': planId,
+      print("サブスクリプション登録開始: ユーザー=${user.uid} planId=$planId");
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'subscription_plan': planId, // フィールド名を統一
         'subscription_date': DateTime.now(),
-      });
+      }, SetOptions(merge: true)); // update ではなく set を利用してドキュメントが存在しない場合にも作成
+      print("サブスクリプション登録成功: ユーザー=${user.uid}");
     } catch (e) {
-      // エラーハンドリング
       print('FirebaseRepository.markUserAsSubscribed error: $e');
       throw Exception('Failed to update user subscription status.');
     }
   }
+
 
   Future<void> markUserAsUnsubscribed() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw Exception('User not logged in.');
     }
+    print("サブスクリプション解除開始: ユーザー=${user.uid}");
     // subscription_plan フィールドを null に設定 (または削除)
     await _firestore.collection('users').doc(user.uid).set(
       {'subscription_plan': null},
       SetOptions(merge: true),
     );
+    print("サブスクリプション解除完了: ユーザー=${user.uid}");
     // または
     // await _firestore.collection('users').doc(user.uid).update({
     //   'subscription_plan': FieldValue.delete(),

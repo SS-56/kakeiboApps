@@ -120,6 +120,7 @@ class SubscriptionPageState extends ConsumerState<SubscriptionPage>
 
   void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) {
     for (final purchaseDetails in purchaseDetailsList) {
+      print("購入イベント受信: status=${purchaseDetails.status} productID=${purchaseDetails.productID}");
       if (purchaseDetails.status == PurchaseStatus.pending) {
         print("課金処理中:${purchaseDetails.productID}");
       } else if (purchaseDetails.status == PurchaseStatus.purchased ||

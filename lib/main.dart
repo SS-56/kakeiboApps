@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yosan_de_kakeibo/firebase_options.dart';
 import 'package:yosan_de_kakeibo/opening_screen.dart';
+import 'package:yosan_de_kakeibo/repositories/firebase_repository.dart';
 import 'package:yosan_de_kakeibo/views/my_page/my_setting_page.dart';
 import 'providers/page_providers.dart';
 import 'views/home/home_page.dart';
@@ -24,6 +25,8 @@ Future<void> main() async {
 
   // 利用規約の同意フラグをチェック
   final isAccepted = prefs.getBool('termsAccepted') ?? false;
+  final firebaseRepository = FirebaseRepository();
+  await firebaseRepository.signInAnonymouslyIfNeeded();
 
   runApp(
     ProviderScope(
