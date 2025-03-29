@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SharedPreferencesManager {
@@ -88,3 +89,27 @@ Future<void> debugSharedPreferences() async {
   }
   print('SharedPreferences Debug End');
 }
+/// 開始日を保存
+Future<void> saveStartDate(DateTime date) async {
+  final spm = SharedPreferencesManager();
+  await spm.saveData("startDate", date.millisecondsSinceEpoch);
+}
+
+ /// 開始日を取得するメソッド
+Future<DateTime?> loadStartDate() async {
+  final prefs = await SharedPreferences.getInstance();
+  final millis = prefs.getInt("startDate");
+  if (millis == null) {
+    return null;
+  }
+  return DateTime.fromMillisecondsSinceEpoch(millis);
+}
+
+
+final startDateProvider = FutureProvider<DateTime?>((ref) async {
+  // SharedPreferencesManager のインスタンスを使うか、直接 SharedPreferences を利用してもOK
+  final prefs = await SharedPreferences.getInstance();
+  final millis = prefs.getInt("startDate");
+  return millis != null ? DateTime.fromMillisecondsSinceEpoch(millis) : null;
+});
+

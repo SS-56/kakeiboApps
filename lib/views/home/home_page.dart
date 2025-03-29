@@ -105,8 +105,8 @@ class HomePage extends ConsumerWidget {
     } else {
       remainText = '${remainingBalance.toStringAsFixed(0)}円';
     }
-    Color barColor = Colors.white;
-    Color txtColor = Colors.black;
+    Color? barColor = Colors.cyan;
+    Color txtColor = Colors.white;
     if (remainingBalance < 0) {
       barColor = Colors.black;
       txtColor = Colors.red;
@@ -116,8 +116,10 @@ class HomePage extends ConsumerWidget {
         final ratio = remainingBalance / totalInc;
         if (ratio < 0.1) {
           barColor = Colors.pink[100]!;
+          txtColor = Colors.black;
         } else if (ratio < 0.2) {
           barColor = Colors.yellow[100]!;
+          txtColor = Colors.black;
         }
       }
     }

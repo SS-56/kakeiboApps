@@ -159,7 +159,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           },
         )
             : null,
-        title: const Text("マイページ"),
+        title: Text("マイページ", style: TextStyle(color: Colors.cyan[800]),),
         actions: [
           IconButton(
             icon: Icon(Icons.settings, color: Colors.cyan[800]),
