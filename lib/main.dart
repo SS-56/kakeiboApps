@@ -43,6 +43,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: '家計簿アプリ',
       theme: ThemeData(
         primarySwatch: Colors.purple,

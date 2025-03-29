@@ -13,10 +13,15 @@ import '../../view_models/settings_view_model.dart';
 class FullScreenFixedCostsSection extends ConsumerWidget {
   const FullScreenFixedCostsSection({super.key});
 
+  // 修正: build 毎に生成されないよう、TextEditingController を静的フィールドとして定義
+  static final TextEditingController _titleController = TextEditingController();
+  static final TextEditingController _amountController = TextEditingController();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final titleController = TextEditingController();
-    final amountController = TextEditingController();
+    // 既存のコード内容はそのまま
+    final titleController = _titleController;
+    final amountController = _amountController;
     final fixedCostsDate = ref.watch(fixedCostsDateProvider);
     final settings = ref.watch(settingsViewModelProvider);
 
@@ -35,7 +40,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
             final totalFixedCosts = ref
                 .watch(fixedCostViewModelProvider)
                 .fold(0.0, (sum, cost) => sum + cost.amount);
-            return Text('固定費合計: ${totalFixedCosts.toStringAsFixed(0)} 円');
+            return Text('固定費合計: ${totalFixedCosts.toStringAsFixed(0)} 円', style: TextStyle(color: Colors.cyan[800]),);
           },
         ),
       ),
@@ -212,8 +217,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                   ref.read(fixedCostsDateProvider.notifier).state = newDate;
                 },
                 onAdd: () {
-                  final selectedDate =
-                  ref.read(fixedCostsDateProvider); // ここでselectedDateを取得
+                  final selectedDate = ref.read(fixedCostsDateProvider); // ここでselectedDateを取得
                   final now = DateTime.now();
                   final updatedDate = DateTime(
                     selectedDate.year,
@@ -229,8 +233,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
                   final amount = double.tryParse(amountController.text);
 
                   final int startDay = ref.read(startDayProvider);
-                  final DateTime startDate =
-                  DateTime(now.year, now.month, startDay);
+                  final DateTime startDate = DateTime(now.year, now.month, startDay);
 
                   // 開始日前のデータかを確認
                   if (updatedDate.isBefore(startDate)) {
@@ -253,8 +256,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
 
                     titleController.clear();
                     amountController.clear();
-                    ref.read(fixedCostsDateProvider.notifier).state =
-                        DateTime.now(); // 日付リセット
+                    ref.read(fixedCostsDateProvider.notifier).state = DateTime.now(); // 日付リセット
                   }
                 },
                 useDayOfMonthPicker: !settings.useCalendarForIncomeFixed && isPaidUser,
@@ -265,6 +267,7 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
       ),
     );
   }
+
   void _editFixed(BuildContext context, WidgetRef ref, FixedCost fixedCost) {
     showCardEditDialog(
       context: context,
@@ -298,11 +301,9 @@ class FullScreenFixedCostsSection extends ConsumerWidget {
 
         // ViewModel の updateFixedCost
 
-
         // 変更を永続化
         ref.read(fixedCostViewModelProvider.notifier).saveData();
       },
     );
   }
 }
-

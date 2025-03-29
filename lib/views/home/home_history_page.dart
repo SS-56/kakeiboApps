@@ -83,7 +83,7 @@ class HomeHistoryPageState extends ConsumerState<HomeHistoryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("ホーム画面 過去実績"),
+        title: Text("ホーム画面 過去実績", style: TextStyle(color: Colors.cyan[800]),),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(

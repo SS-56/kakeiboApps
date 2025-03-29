@@ -13,10 +13,15 @@ import '../../view_models/settings_view_model.dart';
 class FullScreenIncomeSection extends ConsumerWidget {
   const FullScreenIncomeSection({super.key});
 
+  // 追加修正: build 毎に生成されないよう、コントローラーを静的フィールドとして定義
+  static final TextEditingController _titleController = TextEditingController();
+  static final TextEditingController _amountController = TextEditingController();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final titleController = TextEditingController();
-    final amountController = TextEditingController();
+    // build 内では既存のコードをそのまま利用
+    final titleController = _titleController;
+    final amountController = _amountController;
     final incomeDate = ref.watch(incomeDateProvider);
     final settings = ref.watch(settingsViewModelProvider);
 
@@ -35,7 +40,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
             final totalIncome = ref
                 .watch(incomeViewModelProvider)
                 .fold(0.0, (sum, income) => sum + income.amount);
-            return Text('総収入合計: ${totalIncome.toStringAsFixed(0)} 円');
+            return Text('総収入合計: ${totalIncome.toStringAsFixed(0)} 円', style: TextStyle(color: Colors.cyan[800]),);
           },
         ),
       ),
@@ -246,15 +251,14 @@ class FullScreenIncomeSection extends ConsumerWidget {
                   final amount = double.tryParse(amountController.text);
 
                   final int startDay = ref.read(startDayProvider);
-                  final DateTime startDate =
-                  DateTime(now.year, now.month, startDay);
+                  final DateTime startDate = DateTime(now.year, now.month, startDay);
 
                   // 開始日前のデータかを確認
                   if (updatedDate.isBefore(startDate)) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('全ての項目を入力してください。')),
                     );
-                    return; // 処理を中断
+                    return;
                   }
 
                   if (title.isNotEmpty && amount != null) {
@@ -268,8 +272,7 @@ class FullScreenIncomeSection extends ConsumerWidget {
                     );
                     titleController.clear();
                     amountController.clear();
-                    ref.read(incomeDateProvider.notifier).state =
-                        DateTime.now(); // 日付をリセット
+                    ref.read(incomeDateProvider.notifier).state = DateTime.now();
                   }
                 },
                 useDayOfMonthPicker: !settings.useCalendarForIncomeFixed && isPaidUser,
@@ -312,11 +315,8 @@ class FullScreenIncomeSection extends ConsumerWidget {
         );
 
         ref.read(incomeViewModelProvider.notifier).updateIncome(updateIncome);
-
-
         ref.read(incomeViewModelProvider.notifier).saveData();
       },
     );
   }
 }
-

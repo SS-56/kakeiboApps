@@ -44,7 +44,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     if (monthlyDocs.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text("マイページ 過去データ"),
+          title: Text("マイページ 過去データ", style: TextStyle(color: Colors.cyan[800]),),
           automaticallyImplyLeading: false,
           actions: [
             // 右上に “＞” で戻る

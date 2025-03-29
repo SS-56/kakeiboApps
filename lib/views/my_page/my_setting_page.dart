@@ -61,7 +61,7 @@ class MySettingPageState extends ConsumerState<MySettingPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("マイ設定ページ"),
+          title: Text("マイ設定ページ", style: TextStyle(color: Colors.cyan[800]),),
         ),
         body: SingleChildScrollView(
           child: Column(
