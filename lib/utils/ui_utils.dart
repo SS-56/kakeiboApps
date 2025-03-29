@@ -354,4 +354,38 @@ class _CardEditDialogState extends State<_CardEditDialog> {
       ],
     );
   }
+  /// --- 以下、追加部分 --- ///
+  /// showMyDatePicker の定義を追加します。
+  static Future<DateTime?> showMyDatePicker({
+    required BuildContext context,
+    required DateTime initialDate,
+    required DateTime firstDate,
+    required DateTime lastDate,
+  }) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      locale: const Locale('ja'),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData(
+            colorScheme: ColorScheme.light(
+              primary: Colors.cyan, // 選択した日付の背景色
+              onPrimary: Colors.white, // 選択した日付の文字色
+              onSurface: Colors.black, // 通常テキストの色
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.cyan[800], // ボタンの文字色
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    return picked;
+  }
 }

@@ -23,8 +23,32 @@ import 'package:yosan_de_kakeibo/views/widgets/input_area.dart';
 // ★ 新規に作成する読み取り専用のホーム画面過去データ用ページ
 import 'package:yosan_de_kakeibo/views/home/home_history_page.dart';
 
+import '../../services/shared_preferences_service.dart';
+import '../../utils/date_utils.dart';
+
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
+
+  // ▼ 修正：設定画面で更新される startDayProvider を使って残り日数を計算する
+  Future<int> _calculateRemainingDays(WidgetRef ref) async {
+    final now = DateTime.now();
+    // startDayProvider は SettingsPage で更新される整数（日付の「日」部分）
+    final startDay = ref.watch(startDayProvider);
+    // 今月の開始日として算出（例：現在月の17日）
+    final startDate = DateTime(now.year, now.month, startDay);
+    // 次の締め日（1ヶ月後）を計算
+    DateTime nextCycle = _addOneMonth(startDate);
+    // 今よりも未来になるまで1ヶ月ずつ足す
+    while (!nextCycle.isAfter(now)) {
+      nextCycle = _addOneMonth(nextCycle);
+    }
+    return nextCycle.difference(now).inDays;
+  }
+
+  // 1ヶ月先を計算するヘルパー関数（自動で月末調整される）
+  DateTime _addOneMonth(DateTime base) {
+    return DateTime(base.year, base.month + 1, base.day);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -96,7 +120,7 @@ class HomePage extends ConsumerWidget {
     final isPaidUser =
     (subscriptionStatus == 'basic' || subscriptionStatus == 'premium');
 
-    // (4) AppBar
+    // (4) AppBar 用残高表示設定
     String remainText;
     if (remainingBalance == 0) {
       remainText = '0円';
@@ -127,24 +151,37 @@ class HomePage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: barColor,
-        title: Text(
-          'あと $remainText',
-          style: TextStyle(
-            color: txtColor,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
+        title: FutureBuilder<int>(
+          future: _calculateRemainingDays(ref),
+          builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Text('読み込み中...');
+            } else if (snapshot.hasError) {
+              return Text('エラー: ${snapshot.error}');
+            } else {
+              final remainingDays = snapshot.data ?? 0;
+              return Text(
+                'あと ${remainingDays}日で $remainText',
+                style: TextStyle(
+                  color: txtColor,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            }
+          },
         ),
         centerTitle: true,
-
         // ★ 課金ユーザーのみ、leadingに <ボタンを追加
         leading: isPaidUser
             ? IconButton(
-          icon: const Icon(Icons.chevron_left, color: Colors.black, size: 32,),
+          icon: const Icon(
+            Icons.chevron_left,
+            color: Colors.black,
+            size: 32,
+          ),
           onPressed: () async {
-            // 1) finalizeMonth で月次リセット前のデータを保存
             await finalizeMonth(ref);
-            // 2) HomeHistoryPage へ左遷移
             Navigator.push(
               context,
               PageRouteBuilder(
@@ -155,7 +192,8 @@ class HomePage extends ConsumerWidget {
                   final tween = Tween(begin: begin, end: end);
                   final curve = Curves.easeInOut;
                   return SlideTransition(
-                    position: tween.animate(CurvedAnimation(parent: anim, curve: curve)),
+                    position: tween.animate(
+                        CurvedAnimation(parent: anim, curve: curve)),
                     child: child,
                   );
                 },
@@ -169,7 +207,7 @@ class HomePage extends ConsumerWidget {
         behavior: HitTestBehavior.opaque,
         onTap: () {
           FocusScope.of(context).unfocus();
-      },
+        },
         child: Column(
           children: [
             // 総収入
@@ -182,7 +220,11 @@ class HomePage extends ConsumerWidget {
               },
               fullScreenWidget: const FullScreenIncomeSection(),
             ),
-            const Divider(height: 20, thickness: 2, color: Colors.cyan,),
+            const Divider(
+              height: 20,
+              thickness: 2,
+              color: Colors.cyan,
+            ),
             // 固定費
             CommonSectionWidget(
               title: '固定費',
@@ -193,7 +235,11 @@ class HomePage extends ConsumerWidget {
               },
               fullScreenWidget: const FullScreenFixedCostsSection(),
             ),
-            const Divider(height: 20, thickness: 2, color: Colors.cyan,),
+            const Divider(
+              height: 20,
+              thickness: 2,
+              color: Colors.cyan,
+            ),
             // 使った金額
             Expanded(
               child: ExpenseSection(ref: ref),
@@ -228,14 +274,12 @@ class HomePage extends ConsumerWidget {
       onAdd: () {
         final title = titleCtrl.text.trim();
         final amount = double.tryParse(amountCtrl.text);
-        if (title.isEmpty || amount == null /* || amount <= 0 */) {
+        if (title.isEmpty || amount == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('すべての項目を入力してください')),
           );
           return;
         }
-
-        // 使った金額を追加
         ref.read(expenseViewModelProvider.notifier).addItem(
           Expense(
             id: const Uuid().v4(),
@@ -246,8 +290,6 @@ class HomePage extends ConsumerWidget {
         );
         titleCtrl.clear();
         amountCtrl.clear();
-
-        // 追加後 => 残高がマイナスなら取り崩し
         final newRemain = remainingBalance - amount;
         if (isPaidUser && newRemain < 0) {
           final savingCard = fixedCosts.firstWhereOrNull((fc) => fc.title == '貯金');
@@ -332,13 +374,105 @@ class HomePage extends ConsumerWidget {
       );
       return;
     }
-
-    // 貯金を減らすだけ
     final newSaving = (saving.amount - toriAmount).clamp(0.0, double.infinity);
     ref.read(fixedCostViewModelProvider.notifier).updateFixedCost(
       saving.copyWith(
         amount: newSaving,
         isRemember: newSaving > 0,
+      ),
+    );
+  }
+
+  // 既存の startDay 更新処理はそのまま。設定画面で更新された startDayProvider を利用するため、
+  // SharedPreferences への保存とプロバイダーのリフレッシュを実施します。
+  void _applyNewStartDay(WidgetRef ref, int newDay) {
+    ref.read(startDayProvider.notifier).setStartDay(newDay);
+    print("開始日が更新されました: $newDay 日");
+
+    final now = DateTime.now();
+    final startDate = DateTime(now.year, now.month, newDay);
+
+    // 新しい開始日を SharedPreferences に保存
+    saveStartDate(startDate);
+    // プロバイダーをリフレッシュして最新の値を反映
+    ref.refresh(startDateProvider);
+
+    final endDate = calculateEndDate(startDate);
+    ref.read(expenseViewModelProvider.notifier).filterByDateRange(startDate, endDate);
+    ref.read(fixedCostViewModelProvider.notifier).filterByDateRange(startDate, endDate);
+    ref.read(incomeViewModelProvider.notifier).filterByDateRange(startDate, endDate);
+
+    final budgetPeriodMessage =
+        "${startDate.month}月${startDate.day}日から${endDate.month}月${endDate.day}日までを管理します";
+    ref.read(budgetPeriodProvider.notifier).state = budgetPeriodMessage;
+
+    print("管理期間メッセージ: $budgetPeriodMessage");
+  }
+
+  void _showEarlierDateConfirmDialog(
+      BuildContext context,
+      WidgetRef ref,
+      int newDay,
+      ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text("開始日を変更します"),
+          content: const Text(
+            "この日付を選択すると、開始日より前のデータが消去されます。\nよろしいですか？",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800]),),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _updateStartDay(ref, newDay);
+              },
+              child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _updateStartDay(WidgetRef ref, int newDay) {
+    final oldDay = ref.read(startDayProvider);
+    print("開始日が更新されます: old=$oldDay → new=$newDay");
+    if (newDay < oldDay) {
+      _showConfirmEarlierStartDay(ref, newDay);
+    } else {
+      _applyNewStartDay(ref, newDay);
+    }
+  }
+
+  void _showConfirmEarlierStartDay(WidgetRef ref, int newDay) {
+    showDialog(
+      context: ref.context,
+      builder: (_) => AlertDialog(
+        title: const Text("開始日より前の日付を選択しました"),
+        content: const Text(
+          "この日付を選ぶと、開始日より前のカードが消去される可能性があります。\nよろしいですか？",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ref.context),
+            child: Text("キャンセル", style: TextStyle(color: Colors.cyan[800]),),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ref.context);
+              _applyNewStartDay(ref, newDay);
+            },
+            child: Text("OK", style: TextStyle(color: Colors.cyan[800]),),
+          ),
+        ],
       ),
     );
   }
