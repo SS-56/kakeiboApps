@@ -319,15 +319,18 @@ class _MyPageState extends ConsumerState<MyPage> {
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            const Icon(Icons.star, color: Colors.orange),
-            const SizedBox(width: 8),
-            Text(
-              "$planNameに加入中",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              const Icon(Icons.star, color: Colors.orange),
+              const SizedBox(width: 8),
+              Text(
+                "$planNameに加入中",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -395,19 +398,40 @@ class _MyPageState extends ConsumerState<MyPage> {
     String label;
     switch (medal.type) {
       case MedalType.gold:
-        medalWidget = const Icon(Icons.workspace_premium, color: Colors.amber, size: 32);
+        medalWidget = const Icon(
+          Icons.workspace_premium,
+          color: Colors.amber,
+          size: 48,
+        );
+        // Icon に直接キーを設定できない場合、KeyedSubtree でラップする
+        medalWidget = KeyedSubtree(key: const Key('goldMedalIcon'), child: medalWidget);
         label = "金";
         break;
       case MedalType.silver:
-        medalWidget = const Icon(Icons.workspace_premium, color: Colors.grey, size: 32);
+        medalWidget = const Icon(
+          Icons.workspace_premium,
+          color: Colors.grey,
+          size: 48,
+        );
+        medalWidget = KeyedSubtree(key: const Key('silverMedalIcon'), child: medalWidget);
         label = "銀";
         break;
       case MedalType.bronze:
-        medalWidget = const Icon(Icons.workspace_premium, color: Colors.brown, size: 32);
+        medalWidget = const Icon(
+          Icons.workspace_premium,
+          color: Colors.brown,
+          size: 48,
+        );
+        medalWidget = KeyedSubtree(key: const Key('bronzeMedalIcon'), child: medalWidget);
         label = "銅";
         break;
       default:
-        medalWidget = const Icon(Icons.sentiment_neutral, color: Colors.grey, size: 32);
+        medalWidget = const Icon(
+          Icons.sentiment_neutral,
+          color: Colors.grey,
+          size: 48,
+        );
+        medalWidget = KeyedSubtree(key: const Key('noneMedalIcon'), child: medalWidget);
         label = "未達成";
         break;
     }
@@ -426,28 +450,31 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   Widget _buildFixedRow(String label, double amount) {
     final formattedAmount = NumberFormat("#,##0").format(amount);
-    return Padding(
-      padding: const EdgeInsets.only(left: 40.0, right: 40),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(label, textAlign: TextAlign.left, style: const TextStyle(fontSize: 14)),
-          ),
-          SizedBox(
-            width: 110,
-            child: Text(
-              formattedAmount,
-              textAlign: TextAlign.end,
-              style: const TextStyle(fontSize: 14, fontFeatures: [FontFeature.tabularFigures()]),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 40.0, right: 40),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 80,
+              child: Text(label, textAlign: TextAlign.left, style: const TextStyle(fontSize: 14)),
             ),
-          ),
-          Container(
-            width: 20,
-            alignment: Alignment.centerLeft,
-            child: const Text("円", style: TextStyle(fontSize: 14)),
-          ),
-        ],
+            SizedBox(
+              width: 110,
+              child: Text(
+                formattedAmount,
+                textAlign: TextAlign.end,
+                style: const TextStyle(fontSize: 14, fontFeatures: [FontFeature.tabularFigures()]),
+              ),
+            ),
+            Container(
+              width: 20,
+              alignment: Alignment.centerLeft,
+              child: const Text("円", style: TextStyle(fontSize: 14)),
+            ),
+          ],
+        ),
       ),
     );
   }

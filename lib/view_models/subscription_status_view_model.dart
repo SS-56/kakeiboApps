@@ -48,38 +48,48 @@ class SubscriptionStatusViewModel extends StateNotifier<String> {
     state = status;
   }
 
+  //
   Future<void> syncWithFirebase() async {
-    // SharedPreferences からローカルの購読状態を取得
-    final sp = await SharedPreferences.getInstance();
-    final localState = sp.getString('subscription_plan') ?? free;
-    print('[DEBUG] syncWithFirebase - local state: $localState');
+    try {
+      // SharedPreferences からローカルの購読状態を取得
+      final sp = await SharedPreferences.getInstance();
+      final localState = sp.getString('subscription_plan') ?? free;
+      print('[DEBUG] syncWithFirebase - local state: $localState');
 
-    // ユーザーが未ログインの場合は同期処理をスキップ
-    if (FirebaseAuth.instance.currentUser == null) {
-      print('[DEBUG] syncWithFirebase - ユーザー未ログインのため、同期をスキップします。');
+      // ユーザーが未ログインの場合は同期処理をスキップ
+      if (FirebaseAuth.instance.currentUser == null) {
+        print('[DEBUG] syncWithFirebase - ユーザー未ログインのため、同期をスキップします。');
+        state = localState;
+        currentPlanId = localState;
+        return;
+      }
+
+      final firebaseRepo = ref.read(firebaseRepositoryProvider);
+      final firebasePlan = await firebaseRepo.fetchSubscriptionPlan();
+      print('[DEBUG] syncWithFirebase - Firebase plan: $firebasePlan');
+
+      // Firebaseから値がある場合のみローカルを更新、nullの場合はローカル状態をそのまま維持
+      if (firebasePlan != null) {
+        await sp.setString('subscription_plan', firebasePlan);
+        state = firebasePlan;
+        currentPlanId = firebasePlan;
+        print('[DEBUG] syncWithFirebase - Updated local state to: $firebasePlan');
+      } else {
+        state = localState;
+        currentPlanId = localState;
+        print('[DEBUG] syncWithFirebase - Firebase plan is null, preserving local state: $localState');
+      }
+
+      print('[DEBUG] syncWithFirebase - Final shared_preferences: ${sp.getString('subscription_plan')}');
+      print('[DEBUG] syncWithFirebase - Final state: $state');
+    } catch (e) {
+      // 例外が発生した場合でもクラッシュせず、ローカル状態を使う
+      print('[DEBUG] syncWithFirebase - Exception caught: $e');
+      final sp = await SharedPreferences.getInstance();
+      final localState = sp.getString('subscription_plan') ?? free;
       state = localState;
       currentPlanId = localState;
-      return;
     }
-
-    final firebaseRepo = ref.read(firebaseRepositoryProvider);
-    final firebasePlan = await firebaseRepo.fetchSubscriptionPlan();
-    print('[DEBUG] syncWithFirebase - Firebase plan: $firebasePlan');
-
-    // Firebaseから値がある場合のみローカルを更新、nullの場合はローカル状態をそのまま維持
-    if (firebasePlan != null) {
-      await sp.setString('subscription_plan', firebasePlan);
-      state = firebasePlan;
-      currentPlanId = firebasePlan;
-      print('[DEBUG] syncWithFirebase - Updated local state to: $firebasePlan');
-    } else {
-      state = localState;
-      currentPlanId = localState;
-      print('[DEBUG] syncWithFirebase - Firebase plan is null, preserving local state: $localState');
-    }
-
-    print('[DEBUG] syncWithFirebase - Final shared_preferences: ${sp.getString('subscription_plan')}');
-    print('[DEBUG] syncWithFirebase - Final state: $state');
   }
 
   // 退会処理中フラグをセットするメソッド（外部からも呼び出せるようにする場合）

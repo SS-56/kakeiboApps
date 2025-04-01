@@ -12,6 +12,12 @@ import 'package:yosan_de_kakeibo/view_models/income_view_model.dart';
 // ▼ 追加: medal_view_model を使ってメダル判定
 import 'package:yosan_de_kakeibo/view_models/medal_view_model.dart';
 import 'package:yosan_de_kakeibo/view_models/subscription_status_view_model.dart';
+// 追加: 管理開始日を取得するためのプロバイダー（家計簿の管理開始日）
+import 'package:yosan_de_kakeibo/view_models/settings_view_model.dart';
+// 追加: 管理期間計算用の関数（calculateEndDate）も利用
+import 'package:yosan_de_kakeibo/utils/date_utils.dart';
+
+import '../providers/page_providers.dart';
 
 /// 既存の clearMonthlyData は削除せず
 void clearMonthlyData({
@@ -144,8 +150,24 @@ Future<void> finalizeMonth(WidgetRef ref) async {
 
   // (B) 自動保存 => metadataを作って Firebaseへ
   if (isPaidUser) {
+    // 修正：管理開始日を考慮した月次処理
+    // 家計簿の管理開始日（startDay）は startDayProvider から取得
+    final int startDay = ref.read(startDayProvider);
     final now = DateTime.now();
-    final yyyyMM = '${now.year}${now.month.toString().padLeft(2, '0')}';
+    DateTime periodStart;
+    if (now.day >= startDay) {
+      periodStart = DateTime(now.year, now.month, startDay);
+    } else {
+      int prevMonth = now.month - 1;
+      int year = now.year;
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        year = now.year - 1;
+      }
+      periodStart = DateTime(year, prevMonth, startDay);
+    }
+    final yyyyMM = '${periodStart.year}${periodStart.month.toString().padLeft(2, '0')}';
+
     final repo = ref.read(firebaseRepositoryProvider);
 
     final metadata = {
@@ -167,7 +189,23 @@ Future<void> finalizeMonth(WidgetRef ref) async {
       expenses: expenses,
       metadata: metadata,
     );
+
+    // 修正: 自動保存時もメダル付与処理を実行する
+    await ref.read(medalViewModelProvider.notifier).checkAndAwardMedal(
+      totalIncome: totalIncome,
+      remainingBalance: remainingBalance,
+      oldSaving: oldSaving,
+      newSaving: thisMonthSaving,
+      isPaidUser: true,
+    );
   }
+
+  // 修正: 自動保存時も clearMonthlyData() を呼び出して月次リセットを実行
+  clearMonthlyData(
+    incomes: incomes,
+    fixedCosts: fixedCosts,
+    expenses: expenses,
+  );
 
   // oldSaving更新 => 合算していないので thisMonthSaving のまま
   await sp.setDouble('start_of_month_saving', thisMonthSaving);

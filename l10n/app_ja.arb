@@ -1,0 +1,31 @@
+{
+  "@@locale": "ja",
+  "appTitle": "予算deカケーボ！",
+  "homePageTitle": "ホーム画面",
+  "myPageTitle": "マイページ",
+  "mySettingsPageTitle": "マイ設定ページ",
+  "subscriptionPageTitle": "課金ページ",
+  "incomePageTitle": "収入全画面",
+  "fixedCostPageTitle": "固定費全画面",
+  "@appTitle": {
+    "description": "アプリのタイトル"
+  },
+  "@homePageTitle": {
+    "description": "ホーム画面のタイトル"
+  },
+  "@myPageTitle": {
+    "description": "マイページのタイトル"
+  },
+  "@mySettingsPageTitle": {
+    "description": "マイ設定ページのタイトル"
+  },
+  "@subscriptionPageTitle": {
+    "description": "課金ページのタイトル"
+  },
+  "@incomePageTitle": {
+    "description": "収入全画面のタイトル"
+  },
+  "@fixedCostPageTitle": {
+    "description": "固定費全画面のタイトル"
+  }
+}

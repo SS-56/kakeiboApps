@@ -118,6 +118,7 @@ class MedalViewModel extends StateNotifier<List<Medal>> {
   /// 内部メソッド: stateにメダルを追加し、保存
   void addMedal(Medal medal) {
     state = [...state, medal];
+    print('[DEBUG] Medal added: $medal, new state: $state');  // 追加
     saveMedals();
   }
 }

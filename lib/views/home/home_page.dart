@@ -123,11 +123,11 @@ class HomePage extends ConsumerWidget {
     // (4) AppBar 用残高表示設定
     String remainText;
     if (remainingBalance == 0) {
-      remainText = '0円';
+      remainText = '¥0';
     } else if (remainingBalance < 0) {
-      remainText = '${remainingBalance.toStringAsFixed(0)}円';
+      remainText = '¥${remainingBalance.toStringAsFixed(0)}';
     } else {
-      remainText = '${remainingBalance.toStringAsFixed(0)}円';
+      remainText = '¥${remainingBalance.toStringAsFixed(0)}';
     }
     Color? barColor = Colors.cyan;
     Color txtColor = Colors.white;
