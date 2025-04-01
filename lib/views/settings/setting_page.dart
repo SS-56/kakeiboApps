@@ -106,7 +106,7 @@ class SettingsPage extends ConsumerWidget {
                     .setCalendarModeForIncomeFixed(isEveryMonth);
               },
               title: Text(
-                "日付入力方法 (総収入/固定費)",
+                "日付入力方法 (収入/固定費)",
                 style:
                 TextStyle(color: isPaidUser ? Colors.black : Colors.grey),
               ),
